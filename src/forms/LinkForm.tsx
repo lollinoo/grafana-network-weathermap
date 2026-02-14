@@ -516,6 +516,107 @@ export const LinkForm = (props: Props) => {
                   Apply to All?
                 </Button>
               </ControlledCollapse>
+              <ControlledCollapse
+                label="Waypoints"
+                isOpen={getStrokePanelOpen(`waypoints-${link.id}`)}
+                onToggle={(isOpen) => setStrokePanelOpen(`waypoints-${link.id}`, isOpen)}
+              >
+                {(link.waypoints ?? []).map((wp, wi) => (
+                  <InlineFieldRow key={wi} className={styles.row2}>
+                    <InlineField label={`#${wi + 1} X`} grow className={styles.inlineField}>
+                      <Input
+                        type="number"
+                        value={wp.x}
+                        onChange={(e) => {
+                          let weathermap: Weathermap = value;
+                          if (!weathermap.links[i].waypoints) {
+                            return;
+                          }
+                          weathermap.links[i].waypoints![wi] = {
+                            ...weathermap.links[i].waypoints![wi],
+                            x: e.currentTarget.valueAsNumber,
+                          };
+                          onChange(weathermap);
+                        }}
+                      />
+                    </InlineField>
+                    <InlineField label="Y" grow className={styles.inlineField}>
+                      <Input
+                        type="number"
+                        value={wp.y}
+                        onChange={(e) => {
+                          let weathermap: Weathermap = value;
+                          if (!weathermap.links[i].waypoints) {
+                            return;
+                          }
+                          weathermap.links[i].waypoints![wi] = {
+                            ...weathermap.links[i].waypoints![wi],
+                            y: e.currentTarget.valueAsNumber,
+                          };
+                          onChange(weathermap);
+                        }}
+                      />
+                    </InlineField>
+                    <Button
+                      variant="destructive"
+                      icon="trash-alt"
+                      size="sm"
+                      onClick={() => {
+                        let weathermap: Weathermap = value;
+                        if (!weathermap.links[i].waypoints) {
+                          return;
+                        }
+                        weathermap.links[i].waypoints!.splice(wi, 1);
+                        if (weathermap.links[i].waypoints!.length === 0) {
+                          weathermap.links[i].waypoints = undefined;
+                        }
+                        onChange(weathermap);
+                      }}
+                      tooltip="Remove waypoint"
+                    />
+                  </InlineFieldRow>
+                ))}
+                <Button
+                  variant="secondary"
+                  icon="plus"
+                  size="sm"
+                  onClick={() => {
+                    let weathermap: Weathermap = value;
+                    const sourceNode = weathermap.nodes.find((n) => n.id === link.nodes[0].id);
+                    const targetNode = weathermap.nodes.find((n) => n.id === link.nodes[1].id);
+                    if (!sourceNode || !targetNode) {
+                      return;
+                    }
+                    const newWaypoint = {
+                      x: Math.round((sourceNode.position[0] + targetNode.position[0]) / 2),
+                      y: Math.round((sourceNode.position[1] + targetNode.position[1]) / 2),
+                    };
+                    if (!weathermap.links[i].waypoints) {
+                      weathermap.links[i].waypoints = [];
+                    }
+                    weathermap.links[i].waypoints!.push(newWaypoint);
+                    onChange(weathermap);
+                  }}
+                  style={{ marginTop: '5px', marginRight: '5px' }}
+                >
+                  Add Waypoint
+                </Button>
+                {(link.waypoints ?? []).length > 0 && (
+                  <Button
+                    variant="destructive"
+                    icon="trash-alt"
+                    size="sm"
+                    onClick={() => {
+                      let weathermap: Weathermap = value;
+                      weathermap.links[i].waypoints = undefined;
+                      onChange(weathermap);
+                    }}
+                    style={{ marginTop: '5px' }}
+                  >
+                    Clear All
+                  </Button>
+                )}
+              </ControlledCollapse>
               <InlineFieldRow className={styles.row}>
                 <Button variant="destructive" icon="trash-alt" size="md" onClick={() => removeLink(i)} className={''}>
                   Remove Link

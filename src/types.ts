@@ -106,6 +106,7 @@ export interface Link {
   arrows: ArrowOptions;
   stroke: number;
   showThroughputPercentage: boolean;
+  waypoints?: Position[];
 }
 
 export interface DrawnNode extends Node {
@@ -130,6 +131,11 @@ export interface DrawnLinkSide extends LinkSide {
   currentValueText: string;
   currentPercentageText: string;
 }
+export interface LinkSegment {
+  start: Position;
+  end: Position;
+}
+
 export interface DrawnLink extends Link {
   sides: {
     A: DrawnLinkSide;
@@ -146,6 +152,7 @@ export interface DrawnLink extends Link {
   lineEndZ: Position;
   arrowCenterZ: Position;
   arrowPolygonZ: any;
+  segments?: LinkSegment[];
 }
 
 export interface HoveredLink {

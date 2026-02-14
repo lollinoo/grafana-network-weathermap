@@ -48,53 +48,24 @@ export const LinkSegmentsLayer: React.FC<LinkSegmentsLayerProps> = ({
             width={Math.abs(d.target.x - d.source.x)}
             height={Math.abs(d.target.y - d.source.y)}
           >
-            <line
-              strokeWidth={d.stroke}
-              stroke={aSideColor}
-              x1={d.lineStartA.x}
-              y1={d.lineStartA.y}
-              x2={d.lineEndA.x}
-              y2={d.lineEndA.y}
-              onMouseMove={(e) => {
-                onLinkHover(d, 'A', e);
-              }}
-              onMouseOut={onLinkHoverLoss}
-              onClick={(event) => {
-                onLinkClick(d, 'A', event);
-                if (!isEditMode && safeADashboardLink) {
-                  openSafeUrl(safeADashboardLink);
-                }
-              }}
-              style={isEditMode || safeADashboardLink ? { cursor: 'pointer' } : {}}
-            ></line>
-            {nodes[d.source.index].isConnection ? (
-              <circle
-                cx={d.lineStartA.x}
-                cy={d.lineStartA.y}
-                r={upstreamLinks.length > 0 ? Math.max(d.stroke, upstreamLinks[0].stroke) / 2 : d.stroke / 2}
-                fill={aSideColor}
-                style={{ paintOrder: 'stroke' }}
-              ></circle>
-            ) : (
-              ''
-            )}
-            {nodes[d.target.index].isConnection ? (
-              ''
-            ) : (
+            {/* Render waypoint segments if present */}
+            {d.segments && d.segments.length > 1 ? (
               <React.Fragment>
-                <polygon
-                  points={`
-                                ${d.arrowCenterA.x}
-                                ${d.arrowCenterA.y}
-                                ${d.arrowPolygonA.p1.x}
-                                ${d.arrowPolygonA.p1.y}
-                                ${d.arrowPolygonA.p2.x}
-                                ${d.arrowPolygonA.p2.y}
-                            `}
-                  fill={aSideColor}
-                  onMouseMove={(e) => {
-                    onLinkHover(d, 'A', e);
-                  }}
+                {/* A-side polyline: source → all waypoints → arrow center (smooth joins) */}
+                <polyline
+                  strokeWidth={d.stroke}
+                  stroke={aSideColor}
+                  fill="none"
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                  points={[
+                    d.lineStartA,
+                    ...d.segments.slice(1).map((seg) => seg.start),
+                    nodes[d.target.index].isConnection ? d.lineStartZ : d.arrowCenterA,
+                  ]
+                    .map((p) => `${p.x},${p.y}`)
+                    .join(' ')}
+                  onMouseMove={(e) => onLinkHover(d, 'A', e)}
                   onMouseOut={onLinkHoverLoss}
                   onClick={(event) => {
                     onLinkClick(d, 'A', event);
@@ -103,48 +74,156 @@ export const LinkSegmentsLayer: React.FC<LinkSegmentsLayerProps> = ({
                     }
                   }}
                   style={isEditMode || safeADashboardLink ? { cursor: 'pointer' } : {}}
-                ></polygon>
+                />
+                {/* Arrows and Z-side line at the target end */}
+                {nodes[d.target.index].isConnection ? '' : (
+                  <React.Fragment>
+                    <polygon
+                      points={`${d.arrowCenterA.x} ${d.arrowCenterA.y} ${d.arrowPolygonA.p1.x} ${d.arrowPolygonA.p1.y} ${d.arrowPolygonA.p2.x} ${d.arrowPolygonA.p2.y}`}
+                      fill={aSideColor}
+                      onMouseMove={(e) => onLinkHover(d, 'A', e)}
+                      onMouseOut={onLinkHoverLoss}
+                      onClick={(event) => {
+                        onLinkClick(d, 'A', event);
+                        if (!isEditMode && safeADashboardLink) {
+                          openSafeUrl(safeADashboardLink);
+                        }
+                      }}
+                      style={isEditMode || safeADashboardLink ? { cursor: 'pointer' } : {}}
+                    />
+                    <line
+                      strokeWidth={d.stroke}
+                      stroke={zSideColor}
+                      x1={d.lineStartZ.x}
+                      y1={d.lineStartZ.y}
+                      x2={d.lineEndZ.x}
+                      y2={d.lineEndZ.y}
+                      onMouseMove={(e) => onLinkHover(d, 'Z', e)}
+                      onMouseOut={onLinkHoverLoss}
+                      onClick={(event) => {
+                        onLinkClick(d, 'Z', event);
+                        if (!isEditMode && safeZDashboardLink) {
+                          openSafeUrl(safeZDashboardLink);
+                        }
+                      }}
+                      style={isEditMode || safeZDashboardLink ? { cursor: 'pointer' } : {}}
+                    />
+                    <polygon
+                      points={`${d.arrowCenterZ.x} ${d.arrowCenterZ.y} ${d.arrowPolygonZ.p1.x} ${d.arrowPolygonZ.p1.y} ${d.arrowPolygonZ.p2.x} ${d.arrowPolygonZ.p2.y}`}
+                      fill={zSideColor}
+                      onMouseMove={(e) => onLinkHover(d, 'Z', e)}
+                      onMouseOut={onLinkHoverLoss}
+                      onClick={(event) => {
+                        onLinkClick(d, 'Z', event);
+                        if (!isEditMode && safeZDashboardLink) {
+                          openSafeUrl(safeZDashboardLink);
+                        }
+                      }}
+                      style={isEditMode || safeZDashboardLink ? { cursor: 'pointer' } : {}}
+                    />
+                  </React.Fragment>
+                )}
+              </React.Fragment>
+            ) : (
+              <React.Fragment>
+                {/* Original non-waypointed rendering */}
                 <line
                   strokeWidth={d.stroke}
-                  stroke={zSideColor}
-                  x1={d.lineStartZ.x}
-                  y1={d.lineStartZ.y}
-                  x2={d.lineEndZ.x}
-                  y2={d.lineEndZ.y}
-                  onMouseMove={(e) => {
-                    onLinkHover(d, 'Z', e);
-                  }}
+                  stroke={aSideColor}
+                  x1={d.lineStartA.x}
+                  y1={d.lineStartA.y}
+                  x2={d.lineEndA.x}
+                  y2={d.lineEndA.y}
+                  onMouseMove={(e) => onLinkHover(d, 'A', e)}
                   onMouseOut={onLinkHoverLoss}
                   onClick={(event) => {
-                    onLinkClick(d, 'Z', event);
-                    if (!isEditMode && safeZDashboardLink) {
-                      openSafeUrl(safeZDashboardLink);
+                    onLinkClick(d, 'A', event);
+                    if (!isEditMode && safeADashboardLink) {
+                      openSafeUrl(safeADashboardLink);
                     }
                   }}
-                  style={isEditMode || safeZDashboardLink ? { cursor: 'pointer' } : {}}
+                  style={isEditMode || safeADashboardLink ? { cursor: 'pointer' } : {}}
                 ></line>
-                <polygon
-                  points={`
-                                ${d.arrowCenterZ.x}
-                                ${d.arrowCenterZ.y}
-                                ${d.arrowPolygonZ.p1.x}
-                                ${d.arrowPolygonZ.p1.y}
-                                ${d.arrowPolygonZ.p2.x}
-                                ${d.arrowPolygonZ.p2.y}
-                            `}
-                  fill={zSideColor}
-                  onMouseMove={(e) => {
-                    onLinkHover(d, 'Z', e);
-                  }}
-                  onMouseOut={onLinkHoverLoss}
-                  onClick={(event) => {
-                    onLinkClick(d, 'Z', event);
-                    if (!isEditMode && safeZDashboardLink) {
-                      openSafeUrl(safeZDashboardLink);
-                    }
-                  }}
-                  style={isEditMode || safeZDashboardLink ? { cursor: 'pointer' } : {}}
-                ></polygon>
+                {nodes[d.source.index].isConnection ? (
+                  <circle
+                    cx={d.lineStartA.x}
+                    cy={d.lineStartA.y}
+                    r={upstreamLinks.length > 0 ? Math.max(d.stroke, upstreamLinks[0].stroke) / 2 : d.stroke / 2}
+                    fill={aSideColor}
+                    style={{ paintOrder: 'stroke' }}
+                  ></circle>
+                ) : (
+                  ''
+                )}
+                {nodes[d.target.index].isConnection ? (
+                  ''
+                ) : (
+                  <React.Fragment>
+                    <polygon
+                      points={`
+                                    ${d.arrowCenterA.x}
+                                    ${d.arrowCenterA.y}
+                                    ${d.arrowPolygonA.p1.x}
+                                    ${d.arrowPolygonA.p1.y}
+                                    ${d.arrowPolygonA.p2.x}
+                                    ${d.arrowPolygonA.p2.y}
+                                `}
+                      fill={aSideColor}
+                      onMouseMove={(e) => {
+                        onLinkHover(d, 'A', e);
+                      }}
+                      onMouseOut={onLinkHoverLoss}
+                      onClick={(event) => {
+                        onLinkClick(d, 'A', event);
+                        if (!isEditMode && safeADashboardLink) {
+                          openSafeUrl(safeADashboardLink);
+                        }
+                      }}
+                      style={isEditMode || safeADashboardLink ? { cursor: 'pointer' } : {}}
+                    ></polygon>
+                    <line
+                      strokeWidth={d.stroke}
+                      stroke={zSideColor}
+                      x1={d.lineStartZ.x}
+                      y1={d.lineStartZ.y}
+                      x2={d.lineEndZ.x}
+                      y2={d.lineEndZ.y}
+                      onMouseMove={(e) => {
+                        onLinkHover(d, 'Z', e);
+                      }}
+                      onMouseOut={onLinkHoverLoss}
+                      onClick={(event) => {
+                        onLinkClick(d, 'Z', event);
+                        if (!isEditMode && safeZDashboardLink) {
+                          openSafeUrl(safeZDashboardLink);
+                        }
+                      }}
+                      style={isEditMode || safeZDashboardLink ? { cursor: 'pointer' } : {}}
+                    ></line>
+                    <polygon
+                      points={`
+                                    ${d.arrowCenterZ.x}
+                                    ${d.arrowCenterZ.y}
+                                    ${d.arrowPolygonZ.p1.x}
+                                    ${d.arrowPolygonZ.p1.y}
+                                    ${d.arrowPolygonZ.p2.x}
+                                    ${d.arrowPolygonZ.p2.y}
+                                `}
+                      fill={zSideColor}
+                      onMouseMove={(e) => {
+                        onLinkHover(d, 'Z', e);
+                      }}
+                      onMouseOut={onLinkHoverLoss}
+                      onClick={(event) => {
+                        onLinkClick(d, 'Z', event);
+                        if (!isEditMode && safeZDashboardLink) {
+                          openSafeUrl(safeZDashboardLink);
+                        }
+                      }}
+                      style={isEditMode || safeZDashboardLink ? { cursor: 'pointer' } : {}}
+                    ></polygon>
+                  </React.Fragment>
+                )}
               </React.Fragment>
             )}
           </g>

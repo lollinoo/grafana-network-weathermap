@@ -5,6 +5,7 @@ import {
   DrawnLink,
   DrawnNode,
   Link,
+  LinkSegment,
   LinkSide,
   Node,
   SimpleOptions,
@@ -227,37 +228,77 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
     toReturn.lineStartA = getMultiLinkPosition(layoutNodes[toReturn.source.index], toReturn.sides.A);
     toReturn.lineStartZ = getMultiLinkPosition(layoutNodes[toReturn.target.index], toReturn.sides.Z);
 
-    toReturn.lineEndA = getMiddlePoint(
-      toReturn.lineStartZ,
-      toReturn.lineStartA,
-      -toReturn.arrows.offset - toReturn.arrows.height
-    );
+    // Build waypoint segments if this link has waypoints
+    if (d.waypoints && d.waypoints.length > 0) {
+      const allPoints = [toReturn.lineStartA, ...d.waypoints, toReturn.lineStartZ];
+      const segments: LinkSegment[] = [];
+      for (let s = 0; s < allPoints.length - 1; s++) {
+        segments.push({ start: allPoints[s], end: allPoints[s + 1] });
+      }
+      toReturn.segments = segments;
 
-    if (layoutNodes[toReturn.target.index].isConnection) {
-      toReturn.lineEndA = toReturn.lineStartZ;
-      toReturn.lineEndZ = toReturn.lineStartZ;
+      // For waypointed links the A-side line goes from source anchor to first waypoint
+      toReturn.lineEndA = d.waypoints[0];
+
+      // The Z-side line goes from last waypoint to target anchor (with arrow offsets)
+      const lastWp = d.waypoints[d.waypoints.length - 1];
+
+      if (layoutNodes[toReturn.target.index].isConnection) {
+        toReturn.lineEndA = toReturn.lineStartZ;
+        toReturn.lineEndZ = toReturn.lineStartZ;
+      } else {
+        toReturn.lineEndZ = getMiddlePoint(toReturn.lineStartZ, lastWp, toReturn.arrows.offset + toReturn.arrows.height);
+      }
+
+      // Arrows are computed on the final segment direction (lastWp → target)
+      toReturn.arrowCenterA = getMiddlePoint(toReturn.lineStartZ, lastWp, -toReturn.arrows.offset);
+      toReturn.arrowPolygonA = getArrowPolygon(
+        lastWp,
+        toReturn.arrowCenterA,
+        toReturn.arrows.height,
+        toReturn.arrows.width
+      );
+      toReturn.arrowCenterZ = getMiddlePoint(toReturn.lineStartZ, lastWp, toReturn.arrows.offset);
+      toReturn.arrowPolygonZ = getArrowPolygon(
+        toReturn.lineStartZ,
+        toReturn.arrowCenterZ,
+        toReturn.arrows.height,
+        toReturn.arrows.width
+      );
+    } else {
+      // Original non-waypointed behavior
+      toReturn.lineEndA = getMiddlePoint(
+        toReturn.lineStartZ,
+        toReturn.lineStartA,
+        -toReturn.arrows.offset - toReturn.arrows.height
+      );
+
+      if (layoutNodes[toReturn.target.index].isConnection) {
+        toReturn.lineEndA = toReturn.lineStartZ;
+        toReturn.lineEndZ = toReturn.lineStartZ;
+      }
+
+      toReturn.arrowCenterA = getMiddlePoint(toReturn.lineStartZ, toReturn.lineStartA, -toReturn.arrows.offset);
+      toReturn.arrowPolygonA = getArrowPolygon(
+        toReturn.lineStartA,
+        toReturn.arrowCenterA,
+        toReturn.arrows.height,
+        toReturn.arrows.width
+      );
+
+      toReturn.lineEndZ = getMiddlePoint(
+        toReturn.lineStartZ,
+        toReturn.lineStartA,
+        toReturn.arrows.offset + toReturn.arrows.height
+      );
+      toReturn.arrowCenterZ = getMiddlePoint(toReturn.lineStartZ, toReturn.lineStartA, toReturn.arrows.offset);
+      toReturn.arrowPolygonZ = getArrowPolygon(
+        toReturn.lineStartZ,
+        toReturn.arrowCenterZ,
+        toReturn.arrows.height,
+        toReturn.arrows.width
+      );
     }
-
-    toReturn.arrowCenterA = getMiddlePoint(toReturn.lineStartZ, toReturn.lineStartA, -toReturn.arrows.offset);
-    toReturn.arrowPolygonA = getArrowPolygon(
-      toReturn.lineStartA,
-      toReturn.arrowCenterA,
-      toReturn.arrows.height,
-      toReturn.arrows.width
-    );
-
-    toReturn.lineEndZ = getMiddlePoint(
-      toReturn.lineStartZ,
-      toReturn.lineStartA,
-      toReturn.arrows.offset + toReturn.arrows.height
-    );
-    toReturn.arrowCenterZ = getMiddlePoint(toReturn.lineStartZ, toReturn.lineStartA, toReturn.arrows.offset);
-    toReturn.arrowPolygonZ = getArrowPolygon(
-      toReturn.lineStartZ,
-      toReturn.arrowCenterZ,
-      toReturn.arrows.height,
-      toReturn.arrows.width
-    );
 
     return toReturn;
   }
@@ -323,6 +364,7 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
    * the onClick handler to believe we were still dragging after mouseUp.
    */
   const dragRef = useRef({ isMouseDown: false, hasMoved: false });
+  const waypointDragRef = useRef<{ linkIdx: number; wpIdx: number; startX: number; startY: number } | null>(null);
 
   // Remove the old isDragging state
   // const [isDragging, setDragging] = useState(false);
@@ -546,6 +588,24 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
             dragRef.current.hasMoved = false;
           }}
           onMouseMove={(e) => {
+            // Handle waypoint dragging
+            if (waypointDragRef.current) {
+              e.preventDefault();
+              const scaledDelta = getScaledMousePos({
+                x: e.nativeEvent.movementX,
+                y: e.nativeEvent.movementY,
+              });
+              const ref = waypointDragRef.current;
+              const currentWm = { ...wm };
+              if (currentWm.links[ref.linkIdx]?.waypoints?.[ref.wpIdx]) {
+                currentWm.links[ref.linkIdx].waypoints![ref.wpIdx] = {
+                  x: currentWm.links[ref.linkIdx].waypoints![ref.wpIdx].x + scaledDelta.x,
+                  y: currentWm.links[ref.linkIdx].waypoints![ref.wpIdx].y + scaledDelta.y,
+                };
+                onOptionsChange({ weathermap: currentWm });
+              }
+              return;
+            }
             if (dragRef.current.isMouseDown) {
               dragRef.current.hasMoved = true;
               if (e.ctrlKey || e.buttons === 4 || e.shiftKey) {
@@ -554,6 +614,11 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
             }
           }}
           onMouseUp={() => {
+            // Complete waypoint drag
+            if (waypointDragRef.current) {
+              waypointDragRef.current = null;
+              return;
+            }
             dragRef.current.isMouseDown = false;
             // Only commit offset if we moved
             if (dragRef.current.hasMoved) {
@@ -677,6 +742,31 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
               onNodeStop={handleNodeStop}
               onNodeClick={handleNodeClick}
             />
+            {/* Waypoint drag handles */}
+            {isEditMode && wm.links.map((link, linkIdx) => {
+              if (!link.waypoints || link.waypoints.length === 0) {
+                return null;
+              }
+              const isSelected = wm.editorSelection?.selectedType === 'link' && wm.editorSelection?.selectedLinkId === link.id;
+              return link.waypoints.map((wp, wpIdx) => (
+                <circle
+                  key={`wp-${linkIdx}-${wpIdx}`}
+                  cx={wp.x}
+                  cy={wp.y}
+                  r={isSelected ? 6 : 4}
+                  fill={isSelected ? theme.colors.primary.main : theme.colors.text.secondary}
+                  stroke={isSelected ? theme.colors.primary.border : 'transparent'}
+                  strokeWidth={2}
+                  opacity={isSelected ? 0.9 : 0.4}
+                  style={{ cursor: 'grab' }}
+                  onMouseDown={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    waypointDragRef.current = { linkIdx, wpIdx, startX: wp.x, startY: wp.y };
+                  }}
+                />
+              ));
+            })}
           </g>
         </svg>
         <div
