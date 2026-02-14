@@ -30,9 +30,10 @@ import {
 import MapNode from './components/MapNode';
 import ColorScale from 'components/ColorScale';
 import { LinkTooltip } from 'components/LinkTooltip';
-import { getArrowPolygon, getLinkValueFormatter, getMiddlePoint, getPercentPoint } from 'panel/linkMath';
+import { getArrowPolygon, getLinkValueFormatter, getMiddlePoint } from 'panel/linkMath';
 import { enrichHoveredLinkData } from 'panel/hoverLink';
 import { buildDrawnLinkSidesWithMetrics, collectSeriesValuesByFrameId, SeriesValueById } from 'panel/linkMetrics';
+import { getLinkLabelMetrics, getLinkLabelTransform, shouldRenderLinkLabel } from 'panel/linkLabelLayout';
 import { applyNodeDrag, commitNodePositions, commitPanelOffset, toggleSelectedNode } from 'panel/nodeInteractions';
 import { getGridGuideRect, getPanelTranslateOffset, getZoomedPanelSize } from 'panel/panelCanvas';
 import { applyPanOffset, applyZoomDelta, getZoomFactor, shouldAllowZoom } from 'panel/panelViewport';
@@ -623,14 +624,12 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
             </g>
             <g>
               {renderedLinkContexts.map(({ link: d }, i) => {
-                if (d.nodes[0].id === d.nodes[1].id) {
+                if (!shouldRenderLinkLabel(d, 'A', nodes)) {
                   return;
                 }
-                const transform = getPercentPoint(
-                  d.lineStartZ,
-                  d.lineStartA,
-                  (nodes[d.target.index].isConnection ? 1 : 0.5) * (d.sides.A.labelOffset / 100)
-                );
+                const text = `${d.sides.A.currentText}`;
+                const transform = getLinkLabelTransform(d, 'A', nodes);
+                const labelMetrics = getLinkLabelMetrics(text, wm.settings.fontSizing.link);
                 return (
                   <g
                     fontStyle={'italic'}
@@ -642,34 +641,26 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
                     key={i}
                   >
                     <rect
-                      x={
-                        -measureText(`${d.sides.A.currentText}`, wm.settings.fontSizing.link).width / 2 -
-                        (wm.settings.fontSizing.link * 1.5) / 2
-                      }
+                      x={labelMetrics.rectX}
                       y={-wm.settings.fontSizing.link}
-                      width={
-                        measureText(`${d.sides.A.currentText}`, wm.settings.fontSizing.link).width +
-                        wm.settings.fontSizing.link * 1.5
-                      }
-                      height={wm.settings.fontSizing.link * 2}
+                      width={labelMetrics.rectWidth}
+                      height={labelMetrics.rectHeight}
                       fill={getSolidFromAlphaColor(
                         wm.settings.link.label.background,
                         wm.settings.panel.backgroundColor
                       )}
                       stroke={getSolidFromAlphaColor(wm.settings.link.label.border, wm.settings.panel.backgroundColor)}
                       strokeWidth={2}
-                      rx={(wm.settings.fontSizing.link + 8) / 2}
+                      rx={labelMetrics.rectRadius}
                     ></rect>
                     <text
                       x={0}
-                      y={
-                        measureText(`${d.sides.A.currentText}`, wm.settings.fontSizing.link).actualBoundingBoxAscent / 2
-                      }
+                      y={labelMetrics.textY}
                       textAnchor={'middle'}
                       fontSize={`${wm.settings.fontSizing.link}px`}
                       fill={wm.settings.link.label.font}
                     >
-                      {`${d.sides.A.currentText}`}
+                      {text}
                     </text>
                   </g>
                 );
@@ -677,10 +668,12 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
             </g>
             <g>
               {renderedLinkContexts.map(({ link: d }, i) => {
-                if (d.nodes[0].id === d.nodes[1].id || nodes[d.target.index].isConnection) {
+                if (!shouldRenderLinkLabel(d, 'Z', nodes)) {
                   return;
                 }
-                const transform = getPercentPoint(d.lineStartA, d.lineStartZ, 0.5 * (d.sides.Z.labelOffset / 100));
+                const text = `${d.sides.Z.currentText}`;
+                const transform = getLinkLabelTransform(d, 'Z', nodes);
+                const labelMetrics = getLinkLabelMetrics(text, wm.settings.fontSizing.link);
                 return (
                   <g
                     fontStyle={'italic'}
@@ -692,34 +685,26 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
                     key={i}
                   >
                     <rect
-                      x={
-                        -measureText(`${d.sides.Z.currentText}`, wm.settings.fontSizing.link).width / 2 -
-                        (wm.settings.fontSizing.link * 1.5) / 2
-                      }
+                      x={labelMetrics.rectX}
                       y={-wm.settings.fontSizing.link}
-                      width={
-                        measureText(`${d.sides.Z.currentText}`, wm.settings.fontSizing.link).width +
-                        wm.settings.fontSizing.link * 1.5
-                      }
-                      height={wm.settings.fontSizing.link * 2}
+                      width={labelMetrics.rectWidth}
+                      height={labelMetrics.rectHeight}
                       fill={getSolidFromAlphaColor(
                         wm.settings.link.label.background,
                         wm.settings.panel.backgroundColor
                       )}
                       stroke={getSolidFromAlphaColor(wm.settings.link.label.border, wm.settings.panel.backgroundColor)}
                       strokeWidth={2}
-                      rx={(wm.settings.fontSizing.link + 8) / 2}
+                      rx={labelMetrics.rectRadius}
                     ></rect>
                     <text
                       x={0}
-                      y={
-                        measureText(`${d.sides.Z.currentText}`, wm.settings.fontSizing.link).actualBoundingBoxAscent / 2
-                      }
+                      y={labelMetrics.textY}
                       textAnchor={'middle'}
                       fontSize={`${wm.settings.fontSizing.link}px`}
                       fill={wm.settings.link.label.font}
                     >
-                      {`${d.sides.Z.currentText}`}
+                      {text}
                     </text>
                   </g>
                 );
