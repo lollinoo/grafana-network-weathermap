@@ -407,32 +407,47 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
     onOptionsChange(options);
   };
 
-  const filteredGraphQueries = hoveredLink
-    ? filterFramesByQueries(
-        data.series,
-        [hoveredLink.link.sides.A.query, hoveredLink.link.sides.Z.query],
-        getDataFrameName,
-        (error) => console.warn('Network Weathermap: Error while attempting to access query data.', error)
-      )
-    : [];
+  const filteredGraphQueries = useMemo(
+    () =>
+      hoveredLink
+        ? filterFramesByQueries(
+            data.series,
+            [hoveredLink.link.sides.A.query, hoveredLink.link.sides.Z.query],
+            getDataFrameName,
+            (error) => console.warn('Network Weathermap: Error while attempting to access query data.', error)
+          )
+        : [],
+    [data.series, hoveredLink]
+  );
+
+  const renderedLinkContexts = useMemo(
+    () => links.map((link) => buildRenderLinkContext(link, links, nodes, (message) => console.warn(message))),
+    [links, nodes]
+  );
+
+  const tooltipGraphFrames = useMemo(
+    () =>
+      hoveredLink
+        ? decorateTooltipFrames(
+            filteredGraphQueries,
+            data.series,
+            hoveredLink.link.sides.Z.query,
+            wm.settings.tooltip.inboundColor,
+            wm.settings.tooltip.outboundColor,
+            getDataFrameName,
+            (error) => console.warn('Network Weathermap: Error while attempting to access query data.', error)
+          )
+        : [],
+    [
+      data.series,
+      filteredGraphQueries,
+      hoveredLink,
+      wm.settings.tooltip.inboundColor,
+      wm.settings.tooltip.outboundColor,
+    ]
+  );
 
   if (wm) {
-    const renderedLinkContexts = links.map((link) =>
-      buildRenderLinkContext(link, links, nodes, (message) => console.warn(message))
-    );
-
-    const tooltipGraphFrames = hoveredLink
-      ? decorateTooltipFrames(
-          filteredGraphQueries,
-          data.series,
-          hoveredLink.link.sides.Z.query,
-          wm.settings.tooltip.inboundColor,
-          wm.settings.tooltip.outboundColor,
-          getDataFrameName,
-          (error) => console.warn('Network Weathermap: Error while attempting to access query data.', error)
-        )
-      : [];
-
     const safeBackgroundImageUrl = sanitizeExternalUrl(wm.settings.panel.backgroundImage?.url, {
       allowRelative: true,
       allowDataImage: true,
