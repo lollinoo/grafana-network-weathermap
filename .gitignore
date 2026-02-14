@@ -29,6 +29,7 @@ e2e-results/
 
 # Editors
 .idea
+.eslintcache
 
 # Release
 grafana-weathermap-*.zip
