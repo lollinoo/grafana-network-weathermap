@@ -32,3 +32,6 @@ e2e-results/
 
 # Release
 grafana-weathermap-*.zip
+
+# Local documentation workspace (kept local, not versioned)
+docs/
