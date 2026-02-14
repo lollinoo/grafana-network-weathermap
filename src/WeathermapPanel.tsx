@@ -44,6 +44,7 @@ import {
   getPercentPoint,
 } from 'panel/linkMath';
 import { enrichHoveredLinkData } from 'panel/hoverLink';
+import { buildDrawnLinkSidesWithMetrics, collectSeriesValuesByFrameId } from 'panel/linkMetrics';
 import { applyNodeDrag, commitNodePositions, commitPanelOffset, toggleSelectedNode } from 'panel/nodeInteractions';
 import { buildRenderLinkContext } from 'panel/renderLink';
 import { decorateTooltipFrames, filterFramesByQueries } from 'panel/tooltipFrames';
@@ -216,82 +217,15 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
     toReturn.source = source;
     toReturn.target = target;
 
-    let dataFrameWithIds: Array<{ value: number; id: string }> = [];
-    data.series.forEach((frame) => {
-      if (frame.fields.length < 2) {
-        return;
-      }
-      try {
-        dataFrameWithIds.push({
-          value: frame.fields[1].values.get(frame.fields[1].values.length - 1),
-          id: getDataFrameName(frame, data.series),
-        });
-      } catch (e) {
-        console.warn('Network Weathermap: Error while attempting to access query data.', e);
-      }
-    });
-
-    let filteredDataFramesWithIds = dataFrameWithIds.filter(
-      (value) => value.id === toReturn.sides.A.query || value.id === toReturn.sides.Z.query
+    const seriesValues = collectSeriesValuesByFrameId(data.series, getDataFrameName, (error) =>
+      console.warn('Network Weathermap: Error while attempting to access query data.', error)
     );
-
-    // For each of our A/Z sides
-    for (let s = 0; s < 2; s++) {
-      const side: 'A' | 'Z' = s === 0 ? 'A' : 'Z';
-
-      // Check if we have a query to run for this side's bandwidth
-      if (toReturn.sides[side].bandwidthQuery) {
-        let dataFrame = dataFrameWithIds.filter((value) => value.id === toReturn.sides[side].bandwidthQuery);
-
-        // Ensure we have the values we should
-        if (dataFrame[0] !== undefined && dataFrame[0].value !== undefined) {
-          // If we have a value, go use it
-          toReturn.sides[side].bandwidth = dataFrame[0].value;
-        } else {
-          toReturn.sides[side].bandwidth = 0;
-        }
-      }
-
-      // Set the display value to zero, just in case nothing exists
-      toReturn.sides[side].currentValue = 0;
-      toReturn.sides[side].currentText = 'n/a';
-      toReturn.sides[side].currentValueText = 'n/a';
-      toReturn.sides[side].currentPercentageText = 'n/a%';
-      toReturn.sides[side].currentBandwidthText = 'n/a';
-
-      // Check if we have a query to run for this side's throughput
-      if (toReturn.sides[side].query) {
-        let dataSource = toReturn.sides[side].query;
-        let dataFrame = filteredDataFramesWithIds.filter((s) => s.id === dataSource);
-
-        // Ensure we have the values we should
-        if (dataFrame[0] !== undefined && dataFrame[0].value !== undefined) {
-          // If we have a value, go use it
-          toReturn.sides[side].currentValue = dataFrame[0].value;
-
-          // Get the text formatted to KiB/MiB/etc.
-          let scaledSideValue = linkValueFormatter(toReturn.sides[side].currentValue);
-          toReturn.sides[side].currentValueText = `${scaledSideValue.text} ${scaledSideValue.suffix}`;
-
-          // Get the percentage througput text
-          // Note that this does allow the text to be 0% even when a query doesn't return a value.
-          toReturn.sides[side].currentPercentageText =
-            toReturn.sides[side].bandwidth > 0
-              ? `${((toReturn.sides[side].currentValue / toReturn.sides[side].bandwidth) * 100).toFixed(2)}%`
-              : 'n/a%';
-        }
-      }
-
-      // Display throughput % when necessary
-      if (toReturn.showThroughputPercentage || wm.settings.link.showAllWithPercentage) {
-        toReturn.sides[side].currentText = toReturn.sides[side].currentPercentageText;
-      } else {
-        toReturn.sides[side].currentText = toReturn.sides[side].currentValueText;
-      }
-
-      let scaledBandwidth = linkValueFormatter(toReturn.sides[side].bandwidth);
-      toReturn.sides[side].currentBandwidthText = `${scaledBandwidth.text} ${scaledBandwidth.suffix}`;
-    }
+    toReturn.sides = buildDrawnLinkSidesWithMetrics(
+      toReturn,
+      seriesValues,
+      wm.settings.link.showAllWithPercentage,
+      linkValueFormatter
+    );
 
     // Calculate positions for links and arrow polygons. Not included above to help with typing.
     toReturn.lineStartA = getMultiLinkPosition(tempNodes[toReturn.source.index], toReturn.sides.A);
