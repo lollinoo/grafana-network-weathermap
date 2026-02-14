@@ -28,6 +28,7 @@ import {
   sanitizeExternalUrl,
 } from 'utils';
 import MapNode from './components/MapNode';
+import { LinkSegmentsLayer } from 'components/LinkSegmentsLayer';
 import ColorScale from 'components/ColorScale';
 import { LinkTooltip } from 'components/LinkTooltip';
 import { getArrowPolygon, getLinkValueFormatter, getMiddlePoint } from 'panel/linkMath';
@@ -507,121 +508,13 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
             )}
           </g>
           <g transform={`translate(${panelTranslateOffset.x}, ${panelTranslateOffset.y})`}>
-            <g>
-              {renderedLinkContexts.map(({ link: d, upstreamLinks }, i) => {
-                if (d.nodes[0].id === d.nodes[1].id) {
-                  return;
-                }
-                const safeADashboardLink = sanitizeExternalUrl(d.sides.A.dashboardLink, { allowRelative: true });
-                const safeZDashboardLink = sanitizeExternalUrl(d.sides.Z.dashboardLink, { allowRelative: true });
-                return (
-                  <g
-                    key={i}
-                    className="line"
-                    data-testid="link"
-                    strokeOpacity={1}
-                    width={Math.abs(d.target.x - d.source.x)}
-                    height={Math.abs(d.target.y - d.source.y)}
-                  >
-                    <line
-                      strokeWidth={d.stroke}
-                      stroke={getScaleColor(d.sides.A.currentValue, d.sides.A.bandwidth)}
-                      x1={d.lineStartA.x}
-                      y1={d.lineStartA.y}
-                      x2={d.lineEndA.x}
-                      y2={d.lineEndA.y}
-                      onMouseMove={(e) => {
-                        handleLinkHover(d, 'A', e);
-                      }}
-                      onMouseOut={handleLinkHoverLoss}
-                      onClick={() => {
-                        if (safeADashboardLink) {
-                          openSafeUrl(safeADashboardLink);
-                        }
-                      }}
-                      style={safeADashboardLink ? { cursor: 'pointer' } : {}}
-                    ></line>
-                    {nodes[d.source.index].isConnection ? (
-                      <circle
-                        cx={d.lineStartA.x}
-                        cy={d.lineStartA.y}
-                        r={upstreamLinks.length > 0 ? Math.max(d.stroke, upstreamLinks[0].stroke) / 2 : d.stroke / 2}
-                        fill={getScaleColor(d.sides.A.currentValue, d.sides.A.bandwidth)}
-                        style={{ paintOrder: 'stroke' }}
-                      ></circle>
-                    ) : (
-                      ''
-                    )}
-                    {nodes[d.target.index].isConnection ? (
-                      ''
-                    ) : (
-                      <React.Fragment>
-                        <polygon
-                          points={`
-                                        ${d.arrowCenterA.x}
-                                        ${d.arrowCenterA.y}
-                                        ${d.arrowPolygonA.p1.x}
-                                        ${d.arrowPolygonA.p1.y}
-                                        ${d.arrowPolygonA.p2.x}
-                                        ${d.arrowPolygonA.p2.y}
-                                    `}
-                          fill={getScaleColor(d.sides.A.currentValue, d.sides.A.bandwidth)}
-                          onMouseMove={(e) => {
-                            handleLinkHover(d, 'A', e);
-                          }}
-                          onMouseOut={handleLinkHoverLoss}
-                          onClick={() => {
-                            if (safeADashboardLink) {
-                              openSafeUrl(safeADashboardLink);
-                            }
-                          }}
-                          style={safeADashboardLink ? { cursor: 'pointer' } : {}}
-                        ></polygon>
-                        <line
-                          strokeWidth={d.stroke}
-                          stroke={getScaleColor(d.sides.Z.currentValue, d.sides.Z.bandwidth)}
-                          x1={d.lineStartZ.x}
-                          y1={d.lineStartZ.y}
-                          x2={d.lineEndZ.x}
-                          y2={d.lineEndZ.y}
-                          onMouseMove={(e) => {
-                            handleLinkHover(d, 'Z', e);
-                          }}
-                          onMouseOut={handleLinkHoverLoss}
-                          onClick={() => {
-                            if (safeZDashboardLink) {
-                              openSafeUrl(safeZDashboardLink);
-                            }
-                          }}
-                          style={safeZDashboardLink ? { cursor: 'pointer' } : {}}
-                        ></line>
-                        <polygon
-                          points={`
-                                        ${d.arrowCenterZ.x}
-                                        ${d.arrowCenterZ.y}
-                                        ${d.arrowPolygonZ.p1.x}
-                                        ${d.arrowPolygonZ.p1.y}
-                                        ${d.arrowPolygonZ.p2.x}
-                                        ${d.arrowPolygonZ.p2.y}
-                                    `}
-                          fill={getScaleColor(d.sides.Z.currentValue, d.sides.Z.bandwidth)}
-                          onMouseMove={(e) => {
-                            handleLinkHover(d, 'Z', e);
-                          }}
-                          onMouseOut={handleLinkHoverLoss}
-                          onClick={() => {
-                            if (safeZDashboardLink) {
-                              openSafeUrl(safeZDashboardLink);
-                            }
-                          }}
-                          style={safeZDashboardLink ? { cursor: 'pointer' } : {}}
-                        ></polygon>
-                      </React.Fragment>
-                    )}
-                  </g>
-                );
-              })}
-            </g>
+            <LinkSegmentsLayer
+              renderedLinkContexts={renderedLinkContexts}
+              nodes={nodes}
+              getScaleColor={getScaleColor}
+              onLinkHover={handleLinkHover}
+              onLinkHoverLoss={handleLinkHoverLoss}
+            />
             <g>
               {renderedLinkContexts.map(({ link: d }, i) => {
                 if (!shouldRenderLinkLabel(d, 'A', nodes)) {
