@@ -27,9 +27,9 @@ import {
   openSafeUrl,
   sanitizeExternalUrl,
 } from 'utils';
-import MapNode from './components/MapNode';
 import { LinkLabelsLayer } from 'components/LinkLabelsLayer';
 import { LinkSegmentsLayer } from 'components/LinkSegmentsLayer';
+import { NodeLayer } from 'components/NodeLayer';
 import ColorScale from 'components/ColorScale';
 import { LinkTooltip } from 'components/LinkTooltip';
 import { getArrowPolygon, getLinkValueFormatter, getMiddlePoint } from 'panel/linkMath';
@@ -373,6 +373,40 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
     setHoveredLink(null as unknown as HoveredLink);
   };
 
+  const handleNodeDrag = (nodeIndex: number, e: any, position: any) => {
+    // Return early if we actually want to just pan the whole weathermap.
+    if (e.ctrlKey) {
+      return;
+    }
+
+    // Otherwise set our currently dragged node and manage scaling and grid settings.
+    setDraggedNode(nodes[nodeIndex]);
+    const scaledPos = getScaledMousePos({ x: position.deltaX, y: position.deltaY });
+    setNodes((prevState) => applyNodeDrag(prevState, selectedNodes, nodeIndex, scaledPos));
+  };
+
+  const handleNodeStop = (nodeIndex: number) => {
+    setDraggedNode(null as unknown as DrawnNode);
+    const current = commitNodePositions(wm, nodes, nodeIndex, selectedNodes);
+    onOptionsChange({
+      ...options,
+      weathermap: current,
+    });
+  };
+
+  const handleNodeClick = (nodeIndex: number, e: any) => {
+    const safeNodeDashboardLink = sanitizeExternalUrl(nodes[nodeIndex].dashboardLink, {
+      allowRelative: true,
+    });
+    if (e.ctrlKey && isEditMode) {
+      setSelectedNodes((selected) => toggleSelectedNode(selected, nodes[nodeIndex]));
+    } else if (!isEditMode && safeNodeDashboardLink) {
+      openSafeUrl(safeNodeDashboardLink);
+    }
+    // Force an update
+    onOptionsChange(options);
+  };
+
   const filteredGraphQueries = hoveredLink
     ? filterFramesByQueries(
         data.series,
@@ -539,53 +573,17 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
               onLinkHover={handleLinkHover}
               onLinkHoverLoss={handleLinkHoverLoss}
             />
-            <g>
-              {nodes.map((d, i) => (
-                <MapNode
-                  key={d.id}
-                  {...{
-                    node: d,
-                    draggedNode: draggedNode,
-                    selectedNodes: selectedNodes,
-                    wm: wm,
-                    onDrag: (e, position) => {
-                      // Return early if we actually want to just pan the whole weathermap.
-                      if (e.ctrlKey) {
-                        return;
-                      }
-
-                      // Otherwise set our currently dragged node and manage scaling and grid settings.
-                      setDraggedNode(d);
-                      const scaledPos = getScaledMousePos({ x: position.deltaX, y: position.deltaY });
-                      setNodes((prevState) => applyNodeDrag(prevState, selectedNodes, i, scaledPos));
-                    },
-                    onStop: (e, position) => {
-                      // setDraggedNode(null as unknown as DrawnNode);
-                      setDraggedNode(null as unknown as DrawnNode);
-                      const current = commitNodePositions(wm, nodes, i, selectedNodes);
-                      onOptionsChange({
-                        ...options,
-                        weathermap: current,
-                      });
-                    },
-                    onClick: (e) => {
-                      const safeNodeDashboardLink = sanitizeExternalUrl(nodes[i].dashboardLink, {
-                        allowRelative: true,
-                      });
-                      if (e.ctrlKey && isEditMode) {
-                        setSelectedNodes((selected) => toggleSelectedNode(selected, nodes[i]));
-                      } else if (!isEditMode && safeNodeDashboardLink) {
-                        openSafeUrl(safeNodeDashboardLink);
-                      }
-                      // Force an update
-                      onOptionsChange(options);
-                    },
-                    disabled: !isEditMode,
-                    data: data,
-                  }}
-                />
-              ))}
-            </g>
+            <NodeLayer
+              nodes={nodes}
+              draggedNode={draggedNode}
+              selectedNodes={selectedNodes}
+              weathermap={wm}
+              isEditMode={isEditMode}
+              data={data}
+              onNodeDrag={handleNodeDrag}
+              onNodeStop={handleNodeStop}
+              onNodeClick={handleNodeClick}
+            />
           </g>
         </svg>
         <div
