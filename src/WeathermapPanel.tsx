@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Field, getTimeZone, PanelProps } from '@grafana/data';
+import { PanelProps } from '@grafana/data';
 import {
   Anchor,
   DrawnLink,
@@ -14,14 +14,7 @@ import {
   Threshold,
 } from 'types';
 import { css, cx } from 'emotion';
-import {
-  LegendDisplayMode,
-  stylesFactory,
-  TimeSeries,
-  TooltipDisplayMode,
-  TooltipPlugin,
-  useTheme2,
-} from '@grafana/ui';
+import { stylesFactory, useTheme2 } from '@grafana/ui';
 import {
   measureText,
   getSolidFromAlphaColor,
@@ -36,13 +29,8 @@ import {
 } from 'utils';
 import MapNode from './components/MapNode';
 import ColorScale from 'components/ColorScale';
-import {
-  getArrowPolygon,
-  getLinkGraphFormatter,
-  getLinkValueFormatter,
-  getMiddlePoint,
-  getPercentPoint,
-} from 'panel/linkMath';
+import { LinkTooltip } from 'components/LinkTooltip';
+import { getArrowPolygon, getLinkValueFormatter, getMiddlePoint, getPercentPoint } from 'panel/linkMath';
 import { enrichHoveredLinkData } from 'panel/hoverLink';
 import { buildDrawnLinkSidesWithMetrics, collectSeriesValuesByFrameId, SeriesValueById } from 'panel/linkMetrics';
 import { applyNodeDrag, commitNodePositions, commitPanelOffset, toggleSelectedNode } from 'panel/nodeInteractions';
@@ -428,140 +416,16 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
           `
         )}
       >
-        {hoveredLink ? (
-          <div
-            className={css`
-              position: absolute;
-              top: ${hoveredLink.mouseEvent.nativeEvent.layerY}px;
-              left: ${hoveredLink.mouseEvent.nativeEvent.layerX}px;
-              transform: translate(0%, -100%);
-              background-color: ${wm.settings.tooltip.backgroundColor};
-              color: ${wm.settings.tooltip.textColor} !important;
-              font-size: ${wm.settings.tooltip.fontSize} !important;
-              z-index: 10000;
-              display: ${hoveredLink ? 'flex' : 'none'};
-              flex-direction: column;
-              padding: ${wm.settings.tooltip.fontSize}px;
-              border-radius: 4px;
-              border: 1px solid
-                ${getScaleColor(
-                  hoveredLink.link.sides[hoveredLink.side].currentValue,
-                  hoveredLink.link.sides[hoveredLink.side].bandwidth
-                )};
-            `}
-          >
-            <div
-              style={{
-                fontSize: wm.settings.tooltip.fontSize,
-                borderBottom: `1px solid ${theme.colors.border.medium}`,
-                marginBottom: '4px',
-                display: 'flex',
-                justifyContent: 'center',
-              }}
-            >
-              {hoveredLink.link.nodes[0].label} {hoveredLink.side === 'A' ? '--->' : '<---'}{' '}
-              {hoveredLink.link.nodes[1].label}
-            </div>
-            <div style={{ fontSize: wm.settings.tooltip.fontSize }}>
-              Usage - Inbound: {hoveredLink.link.sides.Z.currentValueText}, Outbound:{' '}
-              {hoveredLink.link.sides.A.currentValueText}
-            </div>
-            <div style={{ fontSize: wm.settings.tooltip.fontSize }}>
-              Bandwidth - Inbound: {hoveredLink.link.sides.Z.currentBandwidthText}, Outbound:{' '}
-              {hoveredLink.link.sides.A.currentBandwidthText}
-            </div>
-            <div style={{ fontSize: wm.settings.tooltip.fontSize }}>
-              Throughput (%) - Inbound: {hoveredLink.link.sides.Z.currentPercentageText}, Outbound:{' '}
-              {hoveredLink.link.sides.A.currentPercentageText}
-            </div>
-            <div style={{ fontSize: wm.settings.tooltip.fontSize, paddingBottom: '4px' }}>
-              {safeHoveredLinkDashboardUrl ? 'Click to see more.' : ''}
-            </div>
-            {(hoveredLink.link.sides.A.query || hoveredLink.link.sides.Z.query) && filteredGraphQueries.length > 0 ? (
-              <React.Fragment>
-                <TimeSeries
-                  width={250}
-                  height={100}
-                  timeRange={timeRange}
-                  timeZone={getTimeZone()}
-                  frames={tooltipGraphFrames}
-                  legend={{
-                    calcs: [],
-                    displayMode: LegendDisplayMode.List,
-                    placement: 'bottom',
-                    isVisible: true,
-                    showLegend: false,
-                  }}
-                  tweakScale={(opts, forField: Field<any>) => {
-                    opts.softMin = 0;
-                    if (
-                      wm.settings.tooltip.scaleToBandwidth &&
-                      hoveredLink.link.sides[hoveredLink.side].bandwidth > 0
-                    ) {
-                      opts.softMax = hoveredLink.link.sides[hoveredLink.side].bandwidth;
-                    }
-                    return opts;
-                  }}
-                  tweakAxis={(opts, forField: Field<any>) => {
-                    opts.formatValue = getLinkGraphFormatter(
-                      hoveredLink.link.units
-                        ? hoveredLink.link.units
-                        : wm.settings.link.defaultUnits
-                        ? wm.settings.link.defaultUnits
-                        : 'bps'
-                    );
-                    return opts;
-                  }}
-                >
-                  {(config, alignedDataFrame) => {
-                    return (
-                      <>
-                        <TooltipPlugin
-                          config={config}
-                          data={alignedDataFrame}
-                          mode={TooltipDisplayMode.Multi}
-                          timeZone={getTimeZone()}
-                        />
-                      </>
-                    );
-                  }}
-                </TimeSeries>
-                <div style={{ display: 'flex', alignItems: 'center', paddingTop: '10px' }}>
-                  <div
-                    style={{
-                      width: '10px',
-                      height: '3px',
-                      background: wm.settings.tooltip.inboundColor,
-                      paddingLeft: '5px',
-                      marginRight: '4px',
-                    }}
-                  ></div>
-                  <div style={{ fontSize: wm.settings.tooltip.fontSize }}>Inbound</div>
-                  <div
-                    style={{
-                      width: '10px',
-                      height: '3px',
-                      background: wm.settings.tooltip.outboundColor,
-                      marginLeft: '10px',
-                      marginRight: '4px',
-                    }}
-                  ></div>
-                  <div
-                    style={{
-                      fontSize: wm.settings.tooltip.fontSize,
-                    }}
-                  >
-                    Outbound
-                  </div>
-                </div>
-              </React.Fragment>
-            ) : (
-              ''
-            )}
-          </div>
-        ) : (
-          ''
-        )}
+        <LinkTooltip
+          hoveredLink={hoveredLink}
+          weathermap={wm}
+          filteredGraphQueries={filteredGraphQueries}
+          tooltipGraphFrames={tooltipGraphFrames}
+          timeRange={timeRange}
+          safeDashboardUrl={safeHoveredLinkDashboardUrl}
+          borderColor={theme.colors.border.medium}
+          getScaleColor={getScaleColor}
+        />
         <ColorScale thresholds={wm.scale} settings={wm.settings} />
         <svg
           style={{
