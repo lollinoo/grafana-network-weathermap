@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Field, getTimeZone, PanelProps } from '@grafana/data';
 import {
   Anchor,
@@ -44,7 +44,7 @@ import {
   getPercentPoint,
 } from 'panel/linkMath';
 import { enrichHoveredLinkData } from 'panel/hoverLink';
-import { buildDrawnLinkSidesWithMetrics, collectSeriesValuesByFrameId } from 'panel/linkMetrics';
+import { buildDrawnLinkSidesWithMetrics, collectSeriesValuesByFrameId, SeriesValueById } from 'panel/linkMetrics';
 import { applyNodeDrag, commitNodePositions, commitPanelOffset, toggleSelectedNode } from 'panel/nodeInteractions';
 import { applyPanOffset, applyZoomDelta, getZoomFactor, shouldAllowZoom } from 'panel/panelViewport';
 import { buildRenderLinkContext } from 'panel/renderLink';
@@ -107,6 +107,14 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
     wm.nodes.map((d, i) => {
       return generateDrawnNode(d, i, wm);
     })
+  );
+
+  const seriesValues = useMemo(
+    () =>
+      collectSeriesValuesByFrameId(data.series, getDataFrameName, (error) =>
+        console.warn('Network Weathermap: Error while attempting to access query data.', error)
+      ),
+    [data.series]
   );
 
   const [links, setLinks] = useState(wm ? buildDrawnLinks(wm.links) : []);
@@ -197,7 +205,12 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
   }
 
   // Calculate link positions / text / colors / etc.
-  function generateDrawnLink(d: Link, i: number, layoutNodes: DrawnNode[]): DrawnLink | null {
+  function generateDrawnLink(
+    d: Link,
+    i: number,
+    layoutNodes: DrawnNode[],
+    valuesBySeries: SeriesValueById[]
+  ): DrawnLink | null {
     let toReturn: DrawnLink = { ...d, sides: { A: { ...d.sides.A }, Z: { ...d.sides.Z } } } as DrawnLink;
     toReturn.index = i;
 
@@ -215,12 +228,9 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
     toReturn.source = source;
     toReturn.target = target;
 
-    const seriesValues = collectSeriesValuesByFrameId(data.series, getDataFrameName, (error) =>
-      console.warn('Network Weathermap: Error while attempting to access query data.', error)
-    );
     toReturn.sides = buildDrawnLinkSidesWithMetrics(
       toReturn,
-      seriesValues,
+      valuesBySeries,
       wm.settings.link.showAllWithPercentage,
       linkValueFormatter
     );
@@ -264,7 +274,11 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
     return toReturn;
   }
 
-  function buildDrawnLinks(sourceLinks: Link[], sourceNodes: DrawnNode[] = nodes): DrawnLink[] {
+  function buildDrawnLinks(
+    sourceLinks: Link[],
+    sourceNodes: DrawnNode[] = nodes,
+    valuesBySeries: SeriesValueById[] = seriesValues
+  ): DrawnLink[] {
     const layoutNodes = sourceNodes.map((node) => ({
       ...node,
       anchors: {
@@ -277,7 +291,7 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
     }));
 
     return sourceLinks
-      .map((link, index) => generateDrawnLink(link, index, layoutNodes))
+      .map((link, index) => generateDrawnLink(link, index, layoutNodes, valuesBySeries))
       .filter((link): link is DrawnLink => link !== null);
   }
 
