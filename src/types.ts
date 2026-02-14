@@ -213,6 +213,7 @@ export interface Weathermap {
     selectedNodeId?: string;
     selectedLinkId?: string;
   };
+  persistentSectionState?: Record<string, boolean>;
 }
 
 export interface SimpleOptions {

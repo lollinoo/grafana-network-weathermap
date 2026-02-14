@@ -22,14 +22,13 @@ interface Settings {
   placeholder: string;
 }
 
-interface Props extends StandardEditorProps<Weathermap, Settings> {}
+interface Props extends StandardEditorProps<Weathermap, Settings> { }
 
 export const LinkForm = (props: Props) => {
   const { value, onChange, context } = props;
   const styles = getStyles();
 
   const [currentLink, setCurrentLink] = useState<Link | null>(null);
-  const [strokePanelOpenByLink, setStrokePanelOpenByLink] = useState<Record<string, boolean>>({});
 
   const updateEditorSelection = (linkId: string | undefined) => {
     const previousSelection = value.editorSelection ?? {};
@@ -40,8 +39,8 @@ export const LinkForm = (props: Props) => {
       selectedType: linkId
         ? 'link'
         : previousSelection.selectedType === 'link'
-        ? undefined
-        : previousSelection.selectedType,
+          ? undefined
+          : previousSelection.selectedType,
     };
     onChange(weathermap);
   };
@@ -65,11 +64,17 @@ export const LinkForm = (props: Props) => {
     }
   }, [currentLink, value.links]);
 
+  const getStrokePanelOpen = (linkId: string): boolean => {
+    return value.persistentSectionState?.[`link-stroke-${linkId}`] ?? false;
+  };
+
   const setStrokePanelOpen = (linkId: string, isOpen: boolean) => {
-    setStrokePanelOpenByLink((previous) => ({
-      ...previous,
-      [linkId]: isOpen,
-    }));
+    let weathermap: Weathermap = value;
+    weathermap.persistentSectionState = {
+      ...(weathermap.persistentSectionState ?? {}),
+      [`link-stroke-${linkId}`]: isOpen,
+    };
+    onChange(weathermap);
   };
 
   const findNodeIndex = (n1: Node): number => {
@@ -207,11 +212,7 @@ export const LinkForm = (props: Props) => {
         selectedType: weathermap.editorSelection.selectedType === 'link' ? undefined : weathermap.editorSelection.selectedType,
       };
     }
-    setStrokePanelOpenByLink((previous) => {
-      const next = { ...previous };
-      delete next[toRemove.id];
-      return next;
-    });
+    // persistentSectionState cleanup optional
     onChange(weathermap);
   };
 
@@ -232,7 +233,6 @@ export const LinkForm = (props: Props) => {
       selectedLinkId: undefined,
       selectedType: weathermap.editorSelection?.selectedType === 'link' ? undefined : weathermap.editorSelection?.selectedType,
     };
-    setStrokePanelOpenByLink({});
     props.onChange(weathermap);
   };
 
@@ -310,8 +310,8 @@ export const LinkForm = (props: Props) => {
                       ></Select>
                     </InlineField>
                     {(link.nodes[1].isConnection && sName === 'Z') ||
-                    (link.nodes[0].isConnection && sName === 'A') ||
-                    (link.nodes[0].isConnection && link.nodes[1].isConnection) ? (
+                      (link.nodes[0].isConnection && sName === 'A') ||
+                      (link.nodes[0].isConnection && link.nodes[1].isConnection) ? (
                       ''
                     ) : (
                       <InlineField grow label={`${sName} Side Query`} labelWidth={'auto'}>
@@ -332,8 +332,8 @@ export const LinkForm = (props: Props) => {
                       </InlineField>
                     )}
                     {(link.nodes[1].isConnection && sName === 'Z') ||
-                    (link.nodes[0].isConnection && sName === 'A') ||
-                    (link.nodes[0].isConnection && link.nodes[1].isConnection) ? (
+                      (link.nodes[0].isConnection && sName === 'A') ||
+                      (link.nodes[0].isConnection && link.nodes[1].isConnection) ? (
                       ''
                     ) : (
                       <React.Fragment>
@@ -431,7 +431,7 @@ export const LinkForm = (props: Props) => {
               </InlineField>
               <ControlledCollapse
                 label="Stroke and Arrow"
-                isOpen={strokePanelOpenByLink[link.id] ?? false}
+                isOpen={getStrokePanelOpen(link.id)}
                 onToggle={(isOpen) => setStrokePanelOpen(link.id, isOpen)}
               >
                 <InlineField grow label="Link Stroke Width" className={styles.inlineField}>

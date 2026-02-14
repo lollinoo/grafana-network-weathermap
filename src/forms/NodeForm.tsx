@@ -24,7 +24,7 @@ interface Settings {
   placeholder: string;
 }
 
-interface Props extends StandardEditorProps<Weathermap, Settings> {}
+interface Props extends StandardEditorProps<Weathermap, Settings> { }
 
 interface NodeCollapseState {
   icon: boolean;
@@ -34,19 +34,12 @@ interface NodeCollapseState {
   colors: boolean;
 }
 
-const createDefaultNodeCollapseState = (): NodeCollapseState => ({
-  icon: false,
-  padding: false,
-  status: false,
-  advanced: false,
-  colors: false,
-});
+
 
 export const NodeForm = ({ value, onChange, context }: Props) => {
   const styles = getStyles();
   const theme = useTheme2();
   const [currentNode, setCurrentNode] = useState<Node | null>(null);
-  const [nodeCollapseState, setNodeCollapseState] = useState<Record<string, NodeCollapseState>>({});
 
   const updateEditorSelection = (nodeId: string | undefined) => {
     const previousSelection = value.editorSelection ?? {};
@@ -57,24 +50,23 @@ export const NodeForm = ({ value, onChange, context }: Props) => {
       selectedType: nodeId
         ? 'node'
         : previousSelection.selectedType === 'node'
-        ? undefined
-        : previousSelection.selectedType,
+          ? undefined
+          : previousSelection.selectedType,
     };
     onChange(weathermap);
   };
 
-  const getCollapseState = (nodeId: string): NodeCollapseState => {
-    return nodeCollapseState[nodeId] ?? createDefaultNodeCollapseState();
+  const getCollapseState = (section: keyof NodeCollapseState): boolean => {
+    return value.persistentSectionState?.[section] ?? false;
   };
 
-  const setCollapseState = (nodeId: string, section: keyof NodeCollapseState, isOpen: boolean) => {
-    setNodeCollapseState((prev) => ({
-      ...prev,
-      [nodeId]: {
-        ...(prev[nodeId] ?? createDefaultNodeCollapseState()),
-        [section]: isOpen,
-      },
-    }));
+  const setCollapseState = (section: keyof NodeCollapseState, isOpen: boolean) => {
+    let weathermap: Weathermap = value;
+    weathermap.persistentSectionState = {
+      ...(weathermap.persistentSectionState ?? {}),
+      [section]: isOpen,
+    };
+    onChange(weathermap);
   };
 
   useEffect(() => {
@@ -242,11 +234,11 @@ export const NodeForm = ({ value, onChange, context }: Props) => {
         weathermap.nodes.length > 0
           ? weathermap.nodes[0].colors
           : {
-              font: theme.colors.secondary.contrastText,
-              background: theme.colors.secondary.main,
-              border: theme.colors.secondary.border,
-              statusDown: '#ff0000',
-            },
+            font: theme.colors.secondary.contrastText,
+            background: theme.colors.secondary.main,
+            border: theme.colors.secondary.border,
+            statusDown: '#ff0000',
+          },
       nodeIcon: {
         src: '',
         name: '',
@@ -291,11 +283,7 @@ export const NodeForm = ({ value, onChange, context }: Props) => {
         selectedType: weathermap.editorSelection.selectedType === 'node' ? undefined : weathermap.editorSelection.selectedType,
       };
     }
-    setNodeCollapseState((prev) => {
-      const next = { ...prev };
-      delete next[removedNodeId];
-      return next;
-    });
+    // persistentSectionState cleanup is optional, but we can leave it to avoid clutter
     onChange(weathermap);
   };
 
@@ -309,7 +297,6 @@ export const NodeForm = ({ value, onChange, context }: Props) => {
       selectedLinkId: undefined,
       selectedType: undefined,
     };
-    setNodeCollapseState({});
     onChange(weathermap);
   };
 
@@ -410,8 +397,8 @@ export const NodeForm = ({ value, onChange, context }: Props) => {
               <InlineFieldRow className={styles.inlineRow}>
                 <ControlledCollapse
                   label="Icon"
-                  isOpen={getCollapseState(node.id).icon}
-                  onToggle={(isOpen) => setCollapseState(node.id, 'icon', isOpen)}
+                  isOpen={getCollapseState('icon')}
+                  onToggle={(isOpen) => setCollapseState('icon', isOpen)}
                 >
                   <Select
                     onChange={(v) => {
@@ -504,8 +491,8 @@ export const NodeForm = ({ value, onChange, context }: Props) => {
               <InlineFieldRow className={styles.inlineRow}>
                 <ControlledCollapse
                   label="Padding"
-                  isOpen={getCollapseState(node.id).padding}
-                  onToggle={(isOpen) => setCollapseState(node.id, 'padding', isOpen)}
+                  isOpen={getCollapseState('padding')}
+                  onToggle={(isOpen) => setCollapseState('padding', isOpen)}
                 >
                   <InlineFieldRow className={styles.inlineRow}>
                     <InlineField grow label={'Horizontal'}>
@@ -532,8 +519,8 @@ export const NodeForm = ({ value, onChange, context }: Props) => {
               <InlineFieldRow className={styles.inlineRow}>
                 <ControlledCollapse
                   label="Status"
-                  isOpen={getCollapseState(node.id).status}
-                  onToggle={(isOpen) => setCollapseState(node.id, 'status', isOpen)}
+                  isOpen={getCollapseState('status')}
+                  onToggle={(isOpen) => setCollapseState('status', isOpen)}
                 >
                   <InlineFieldRow className={styles.inlineRow}>
                     <InlineField grow label={'Query'}>
@@ -566,8 +553,8 @@ export const NodeForm = ({ value, onChange, context }: Props) => {
               <InlineFieldRow className={styles.inlineRow}>
                 <ControlledCollapse
                   label="Advanced"
-                  isOpen={getCollapseState(node.id).advanced}
-                  onToggle={(isOpen) => setCollapseState(node.id, 'advanced', isOpen)}
+                  isOpen={getCollapseState('advanced')}
+                  onToggle={(isOpen) => setCollapseState('advanced', isOpen)}
                 >
                   <InlineFieldRow className={styles.inlineRow}>
                     <InlineField grow label={'Constant Spacing'}>
@@ -585,8 +572,8 @@ export const NodeForm = ({ value, onChange, context }: Props) => {
               <InlineFieldRow className={styles.inlineRow}>
                 <ControlledCollapse
                   label="Colors"
-                  isOpen={getCollapseState(node.id).colors}
-                  onToggle={(isOpen) => setCollapseState(node.id, 'colors', isOpen)}
+                  isOpen={getCollapseState('colors')}
+                  onToggle={(isOpen) => setCollapseState('colors', isOpen)}
                 >
                   {Object.keys(node.colors).map((colorType) => (
                     <InlineFieldRow key={colorType}>

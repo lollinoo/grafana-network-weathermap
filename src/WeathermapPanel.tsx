@@ -128,14 +128,14 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
     // Set x and y to the rounded value if we are using the grid
     x =
       wm.settings.panel.grid.enabled &&
-      draggedNode &&
-      (draggedNode.index === d.index || selectedNodes.find((n) => n.index === d.index))
+        draggedNode &&
+        (draggedNode.index === d.index || selectedNodes.find((n) => n.index === d.index))
         ? nearestMultiple(d.x, wm.settings.panel.grid.size)
         : x;
     y =
       wm.settings.panel.grid.enabled &&
-      draggedNode &&
-      (draggedNode.index === d.index || selectedNodes.find((n) => n.index === d.index))
+        draggedNode &&
+        (draggedNode.index === d.index || selectedNodes.find((n) => n.index === d.index))
         ? nearestMultiple(d.y, wm.settings.panel.grid.size)
         : y;
 
@@ -180,7 +180,7 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
         x +=
           -paddedWidth / 2 +
           (d.anchors[side.anchor].numFilledLinks + 1) *
-            (paddedWidth / (nodes[d.index].anchors[side.anchor].numLinks + 1));
+          (paddedWidth / (nodes[d.index].anchors[side.anchor].numLinks + 1));
       }
       // Add height if we are at the bottom;
       if (side.anchor === Anchor.Bottom) {
@@ -442,11 +442,11 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
     () =>
       hoveredLink
         ? filterFramesByQueries(
-            data.series,
-            [hoveredLink.link.sides.A.query, hoveredLink.link.sides.Z.query],
-            getDataFrameName,
-            (error) => console.warn('Network Weathermap: Error while attempting to access query data.', error)
-          )
+          data.series,
+          [hoveredLink.link.sides.A.query, hoveredLink.link.sides.Z.query],
+          getDataFrameName,
+          (error) => console.warn('Network Weathermap: Error while attempting to access query data.', error)
+        )
         : [],
     [data.series, hoveredLink]
   );
@@ -460,14 +460,14 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
     () =>
       hoveredLink
         ? decorateTooltipFrames(
-            filteredGraphQueries,
-            data.series,
-            hoveredLink.link.sides.Z.query,
-            wm.settings.tooltip.inboundColor,
-            wm.settings.tooltip.outboundColor,
-            getDataFrameName,
-            (error) => console.warn('Network Weathermap: Error while attempting to access query data.', error)
-          )
+          filteredGraphQueries,
+          data.series,
+          hoveredLink.link.sides.Z.query,
+          wm.settings.tooltip.inboundColor,
+          wm.settings.tooltip.outboundColor,
+          getDataFrameName,
+          (error) => console.warn('Network Weathermap: Error while attempting to access query data.', error)
+        )
         : [],
     [
       data.series,
@@ -547,6 +547,28 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
           onMouseUp={() => {
             setDragging(false);
             onOptionsChange({ weathermap: commitPanelOffset(wm, offset) });
+          }}
+          onClick={(e) => {
+            // Only clear if we are not dragging and it was a direct click on the SVG background
+            if (!isDragging && (e.target as HTMLElement).id?.startsWith('nw-')) {
+              if (isEditMode) {
+                const previous = wm.editorSelection;
+                if (previous?.selectedType) {
+                  onOptionsChange({
+                    weathermap: {
+                      ...wm,
+                      editorSelection: {
+                        ...previous,
+                        selectedType: undefined,
+                        selectedNodeId: undefined,
+                        selectedLinkId: undefined,
+                      },
+                    },
+                  });
+                }
+                setSelectedNodes([]);
+              }
+            }
           }}
           onDoubleClick={() => {
             setSelectedNodes([]);
@@ -650,10 +672,10 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
             styles.timeText,
             css`
               color: ${theme.colors.getContrastText(
-                wm.settings.panel.backgroundColor.startsWith('image')
-                  ? wm.settings.panel.backgroundColor.split('|', 3)[1]
-                  : wm.settings.panel.backgroundColor
-              )};
+              wm.settings.panel.backgroundColor.startsWith('image')
+                ? wm.settings.panel.backgroundColor.split('|', 3)[1]
+                : wm.settings.panel.backgroundColor
+            )};
             `
           )}
         >
