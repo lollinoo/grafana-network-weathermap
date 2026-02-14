@@ -13,7 +13,7 @@
     - Yes you can now! For node icons as well. You simple have to host the image somewhere and can insert the URL into the image box under the panel customization.
 
 - Q: Plugin is throwing `toReturn.source is undefined`?
-    - Just reload or force reload the page. I have yet to properly track down this bug, but rest assured it seems to only occur directly after saving and applying your changes and can be easily fixed.
+    - This error is now guarded in runtime by skipping orphaned links. If you still see warnings, open the link editor and make sure each link points to existing nodes.
 
 
 Other problems and you're somehow on this page before Github? [Leave a new issue!](https://github.com/knightss27/grafana-network-weathermap/issues)

@@ -142,13 +142,7 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
   // To be used to calculate how many links we've drawn
   let tempNodes = nodes.slice();
 
-  const [links, setLinks] = useState(
-    wm
-      ? wm.links.map((d, i) => {
-          return generateDrawnLink(d, i);
-        })
-      : []
-  );
+  const [links, setLinks] = useState(wm ? buildDrawnLinks(wm.links) : []);
 
   // Calculate aspect-ratio corrected drag positions
   function getScaledMousePos(pos: { x: number; y: number }): { x: number; y: number } {
@@ -236,7 +230,7 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
   }
 
   // Calculate link positions / text / colors / etc.
-  function generateDrawnLink(d: Link, i: number): DrawnLink {
+  function generateDrawnLink(d: Link, i: number): DrawnLink | null {
     let toReturn: DrawnLink = { ...d, sides: { A: { ...d.sides.A }, Z: { ...d.sides.Z } } } as DrawnLink;
     toReturn.index = i;
 
@@ -245,8 +239,14 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
     );
 
     // Set the link's source and target node
-    toReturn.source = nodes.filter((n) => n.id === toReturn.nodes[0].id)[0];
-    toReturn.target = nodes.filter((n) => n.id === toReturn.nodes[1].id)[0];
+    const source = nodes.find((n) => n.id === toReturn.nodes[0].id);
+    const target = nodes.find((n) => n.id === toReturn.nodes[1].id);
+    if (!source || !target) {
+      console.warn(`Network Weathermap: Skipping link "${toReturn.id}" because one or both nodes are missing.`);
+      return null;
+    }
+    toReturn.source = source;
+    toReturn.target = target;
 
     let dataFrameWithIds: Array<{ value: number; id: string }> = [];
     data.series.forEach((frame) => {
@@ -326,19 +326,6 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
     }
 
     // Calculate positions for links and arrow polygons. Not included above to help with typing.
-    if (i === 0) {
-      tempNodes = tempNodes.map((n) => {
-        n.anchors = {
-          0: { numLinks: n.anchors[0].numLinks, numFilledLinks: 0 },
-          1: { numLinks: n.anchors[1].numLinks, numFilledLinks: 0 },
-          2: { numLinks: n.anchors[2].numLinks, numFilledLinks: 0 },
-          3: { numLinks: n.anchors[3].numLinks, numFilledLinks: 0 },
-          4: { numLinks: n.anchors[4].numLinks, numFilledLinks: 0 },
-        };
-        return n;
-      });
-    }
-
     toReturn.lineStartA = getMultiLinkPosition(tempNodes[toReturn.source.index], toReturn.sides.A);
     toReturn.lineStartZ = getMultiLinkPosition(tempNodes[toReturn.target.index], toReturn.sides.Z);
 
@@ -377,6 +364,21 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
     return toReturn;
   }
 
+  function buildDrawnLinks(sourceLinks: Link[]): DrawnLink[] {
+    tempNodes = tempNodes.map((n) => {
+      n.anchors = {
+        0: { numLinks: n.anchors[0].numLinks, numFilledLinks: 0 },
+        1: { numLinks: n.anchors[1].numLinks, numFilledLinks: 0 },
+        2: { numLinks: n.anchors[2].numLinks, numFilledLinks: 0 },
+        3: { numLinks: n.anchors[3].numLinks, numFilledLinks: 0 },
+        4: { numLinks: n.anchors[4].numLinks, numFilledLinks: 0 },
+      };
+      return n;
+    });
+
+    return sourceLinks.map((d, i) => generateDrawnLink(d, i)).filter((link): link is DrawnLink => link !== null);
+  }
+
   // Minimize uneeded state changes
   const mounted = useRef(false);
 
@@ -399,11 +401,7 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
   // Update links on props/data change
   // TODO: Optimize this to only update the necessary links?
   useEffect(() => {
-    setLinks(
-      options.weathermap.links.map((d, i) => {
-        return generateDrawnLink(d, i);
-      })
-    );
+    setLinks(buildDrawnLinks(options.weathermap.links));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options, data, nodes]); // need to keep nodes here for good looking updating
 
@@ -1095,11 +1093,7 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
                         })
                       );
                       tempNodes = nodes.slice();
-                      setLinks(
-                        wm.links.map((d, i) => {
-                          return generateDrawnLink(d, i);
-                        })
-                      );
+                      setLinks(buildDrawnLinks(wm.links));
                     },
                     onStop: (e, position) => {
                       // setDraggedNode(null as unknown as DrawnNode);
