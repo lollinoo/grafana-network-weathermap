@@ -32,8 +32,8 @@ jobs:
         run: |
           docker run -d --name grafana-smoke \
             -p 3300:3000 \
-            -e GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=knightss27-weathermap-panel \
-            -v "$PWD/dist:/var/lib/grafana/plugins/knightss27-weathermap-panel" \
+            -e GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=weathermap-panel \
+            -v "$PWD/dist:/var/lib/grafana/plugins/weathermap-panel" \
             grafana/grafana:latest
 
       - name: Wait for Grafana readiness
@@ -51,7 +51,7 @@ jobs:
       - name: Verify plugin is loaded
         run: |
           curl -sf -u admin:admin http://127.0.0.1:3300/api/plugins \
-            | jq -e '.[] | select(.id=="knightss27-weathermap-panel")' >/dev/null
+            | jq -e '.[] | select(.id=="weathermap-panel")' >/dev/null
 
       - name: Stop container
         if: always()

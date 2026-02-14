@@ -770,60 +770,12 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
               onLinkHoverLoss={handleLinkHoverLoss}
               onLinkClick={handleLinkClick}
               isEditMode={isEditMode}
-              selectedLinkId={wm.editorSelection?.selectedType === 'link' ? wm.editorSelection.selectedLinkId : undefined}
+              selectedLinkId={isEditMode && wm.editorSelection?.selectedType === 'link' ? wm.editorSelection.selectedLinkId : undefined}
               selectionColor={theme.colors.primary.main}
             />
-            <LinkLabelsLayer
-              renderedLinkContexts={renderedLinkContexts}
-              nodes={nodes}
-              side="A"
-              fontSize={wm.settings.fontSizing.link}
-              backgroundColor={wm.settings.link.label.background}
-              borderColor={wm.settings.link.label.border}
-              fontColor={wm.settings.link.label.font}
-              panelBackgroundColor={wm.settings.panel.backgroundColor}
-              onLinkHover={handleLinkHover}
-              onLinkHoverLoss={handleLinkHoverLoss}
-              onLinkClick={handleLinkClick}
-              onLabelDragStart={handleLabelDragStart}
-              isEditMode={isEditMode}
-              selectedLinkId={wm.editorSelection?.selectedType === 'link' ? wm.editorSelection.selectedLinkId : undefined}
-              draggingLabelSide={activeDrag === 'label' && labelDragRef.current ? labelDragRef.current.side : undefined}
-              draggingLinkId={activeDrag === 'label' && labelDragRef.current ? labelDragRef.current.linkId : undefined}
-              selectionColor={theme.colors.primary.main}
-            />
-            <LinkLabelsLayer
-              renderedLinkContexts={renderedLinkContexts}
-              nodes={nodes}
-              side="Z"
-              fontSize={wm.settings.fontSizing.link}
-              backgroundColor={wm.settings.link.label.background}
-              borderColor={wm.settings.link.label.border}
-              fontColor={wm.settings.link.label.font}
-              panelBackgroundColor={wm.settings.panel.backgroundColor}
-              onLinkHover={handleLinkHover}
-              onLinkHoverLoss={handleLinkHoverLoss}
-              onLinkClick={handleLinkClick}
-              onLabelDragStart={handleLabelDragStart}
-              isEditMode={isEditMode}
-              selectedLinkId={wm.editorSelection?.selectedType === 'link' ? wm.editorSelection.selectedLinkId : undefined}
-              draggingLabelSide={activeDrag === 'label' && labelDragRef.current ? labelDragRef.current.side : undefined}
-              draggingLinkId={activeDrag === 'label' && labelDragRef.current ? labelDragRef.current.linkId : undefined}
-              selectionColor={theme.colors.primary.main}
-            />
-            <NodeLayer
-              nodes={nodes}
-              draggedNode={null as unknown as DrawnNode}
-              selectedNodes={selectedNodes}
-              selectedNodeId={wm.editorSelection?.selectedType === 'node' ? wm.editorSelection.selectedNodeId : undefined}
-              weathermap={wm}
-              isEditMode={isEditMode}
-              data={data}
-              onNodeDrag={handleNodeDrag}
-              onNodeStop={handleNodeStop}
-              onNodeClick={handleNodeClick}
-            />
-            {/* Waypoint drag handles */}
+            {/* Waypoint drag handles render before labels so labels paint on top,
+                but waypoints can still receive events when their link is selected
+                (labels only intercept mouseDown when selected — see fix #2). */}
             {isEditMode && wm.links.map((link, linkIdx) => {
               if (!link.waypoints || link.waypoints.length === 0) {
                 return null;
@@ -879,6 +831,57 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
                 );
               });
             })}
+            <LinkLabelsLayer
+              renderedLinkContexts={renderedLinkContexts}
+              nodes={nodes}
+              side="A"
+              fontSize={wm.settings.fontSizing.link}
+              backgroundColor={wm.settings.link.label.background}
+              borderColor={wm.settings.link.label.border}
+              fontColor={wm.settings.link.label.font}
+              panelBackgroundColor={wm.settings.panel.backgroundColor}
+              onLinkHover={handleLinkHover}
+              onLinkHoverLoss={handleLinkHoverLoss}
+              onLinkClick={handleLinkClick}
+              onLabelDragStart={handleLabelDragStart}
+              isEditMode={isEditMode}
+              selectedLinkId={isEditMode && wm.editorSelection?.selectedType === 'link' ? wm.editorSelection.selectedLinkId : undefined}
+              draggingLabelSide={activeDrag === 'label' && labelDragRef.current ? labelDragRef.current.side : undefined}
+              draggingLinkId={activeDrag === 'label' && labelDragRef.current ? labelDragRef.current.linkId : undefined}
+              selectionColor={theme.colors.primary.main}
+            />
+            <LinkLabelsLayer
+              renderedLinkContexts={renderedLinkContexts}
+              nodes={nodes}
+              side="Z"
+              fontSize={wm.settings.fontSizing.link}
+              backgroundColor={wm.settings.link.label.background}
+              borderColor={wm.settings.link.label.border}
+              fontColor={wm.settings.link.label.font}
+              panelBackgroundColor={wm.settings.panel.backgroundColor}
+              onLinkHover={handleLinkHover}
+              onLinkHoverLoss={handleLinkHoverLoss}
+              onLinkClick={handleLinkClick}
+              onLabelDragStart={handleLabelDragStart}
+              isEditMode={isEditMode}
+              selectedLinkId={isEditMode && wm.editorSelection?.selectedType === 'link' ? wm.editorSelection.selectedLinkId : undefined}
+              draggingLabelSide={activeDrag === 'label' && labelDragRef.current ? labelDragRef.current.side : undefined}
+              draggingLinkId={activeDrag === 'label' && labelDragRef.current ? labelDragRef.current.linkId : undefined}
+              selectionColor={theme.colors.primary.main}
+            />
+            <NodeLayer
+              nodes={nodes}
+              draggedNode={null as unknown as DrawnNode}
+              selectedNodes={selectedNodes}
+              selectedNodeId={isEditMode && wm.editorSelection?.selectedType === 'node' ? wm.editorSelection.selectedNodeId : undefined}
+              weathermap={wm}
+              isEditMode={isEditMode}
+              data={data}
+              onNodeDrag={handleNodeDrag}
+              onNodeStop={handleNodeStop}
+              onNodeClick={handleNodeClick}
+            />
+            {/* Waypoint handles already rendered above labels */}
           </g>
         </svg>
         <div

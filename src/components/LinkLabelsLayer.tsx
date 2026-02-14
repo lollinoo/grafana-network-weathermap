@@ -72,7 +72,7 @@ export const LinkLabelsLayer: React.FC<LinkLabelsLayerProps> = ({
             onMouseOut={onLinkHoverLoss}
             onClick={(e) => onLinkClick(d, side, e)}
             onMouseDown={(e) => {
-              if (isEditMode && onLabelDragStart) {
+              if (isEditMode && onLabelDragStart && isEditorSelected) {
                 e.stopPropagation();
                 e.preventDefault();
                 onLabelDragStart(d, side, e);
