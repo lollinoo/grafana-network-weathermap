@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { DataFrame, Field, getTimeZone, getValueFormat, PanelProps } from '@grafana/data';
+import { DataFrame, Field, getTimeZone, PanelProps } from '@grafana/data';
 import {
   Anchor,
   DrawnLink,
@@ -36,6 +36,13 @@ import {
 } from 'utils';
 import MapNode from './components/MapNode';
 import ColorScale from 'components/ColorScale';
+import {
+  getArrowPolygon,
+  getLinkGraphFormatter,
+  getLinkValueFormatter,
+  getMiddlePoint,
+  getPercentPoint,
+} from 'panel/linkMath';
 
 // Calculate node position, width, etc.
 function generateDrawnNode(d: Node, i: number, wm: Weathermap): DrawnNode {
@@ -53,16 +60,6 @@ function generateDrawnNode(d: Node, i: number, wm: Weathermap): DrawnNode {
   };
   return toReturn;
 }
-
-// Format link values as the proper prefix of bits
-const getlinkValueFormatter = (fmt_id: string) => getValueFormat(fmt_id);
-const getlinkGraphFormatter =
-  (fmt_id: string) =>
-  (v: any): string => {
-    let formatter = getValueFormat(fmt_id);
-    let formattedValue = formatter(v);
-    return `${formattedValue.text} ${formattedValue.suffix}`;
-  };
 
 /**
  * Weathermap panel component.
@@ -98,39 +95,6 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
     });
 
     return assignedColor;
-  }
-
-  // Get the middle point between two nodes
-  function getMiddlePoint(source: Position, target: Position, offset: number): Position {
-    const x = (source.x + target.x) / 2;
-    const y = (source.y + target.y) / 2;
-    const a = target.x - source.x;
-    const b = target.y - source.y;
-    const dist = Math.sqrt(a * a + b * b);
-    const newX = x - (offset * (target.x - source.x)) / dist;
-    const newY = y - (offset * (target.y - source.y)) / dist;
-    return { x: newX, y: newY };
-  }
-
-  // Get a point a percentage of the way between two nodes
-  function getPercentPoint(source: Position, target: Position, percent: number): Position {
-    const newX = target.x + (source.x - target.x) * percent;
-    const newY = target.y + (source.y - target.y) * percent;
-    return { x: newX, y: newY };
-  }
-
-  // Find the points that create the two other points of a triangle for the arrow's tip
-  function getArrowPolygon(_p1: any, _p2: any, height: number, width: number) {
-    let h = height;
-    let w = width / 2;
-    let vec1 = { x: _p2.x - _p1.x, y: _p2.y - _p1.y };
-    let length = Math.sqrt(vec1.x * vec1.x + vec1.y * vec1.y);
-    vec1.x = vec1.x / length;
-    vec1.y = vec1.y / length;
-    let vec2 = { x: -vec1.y, y: vec1.x };
-    let v1 = { x: _p2.x - h * vec1.x + w * vec2.x, y: _p2.y - h * vec1.y + w * vec2.y };
-    let v2 = { x: _p2.x - h * vec1.x - w * vec2.x, y: _p2.y - h * vec1.y - w * vec2.y };
-    return { p1: v1, p2: v2 };
   }
 
   const [nodes, setNodes] = useState(
@@ -234,7 +198,7 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
     let toReturn: DrawnLink = { ...d, sides: { A: { ...d.sides.A }, Z: { ...d.sides.Z } } } as DrawnLink;
     toReturn.index = i;
 
-    const linkValueFormatter = getlinkValueFormatter(
+    const linkValueFormatter = getLinkValueFormatter(
       d.units ? d.units : wm.settings.link.defaultUnits ? wm.settings.link.defaultUnits : 'bps'
     );
 
@@ -641,7 +605,7 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
                     return opts;
                   }}
                   tweakAxis={(opts, forField: Field<any>) => {
-                    opts.formatValue = getlinkGraphFormatter(
+                    opts.formatValue = getLinkGraphFormatter(
                       hoveredLink.link.units
                         ? hoveredLink.link.units
                         : wm.settings.link.defaultUnits
