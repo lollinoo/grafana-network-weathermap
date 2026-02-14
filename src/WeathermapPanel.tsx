@@ -108,9 +108,6 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
     })
   );
 
-  // To be used to calculate how many links we've drawn
-  let tempNodes = nodes.slice();
-
   const [links, setLinks] = useState(wm ? buildDrawnLinks(wm.links) : []);
 
   // Calculate aspect-ratio corrected drag positions
@@ -199,7 +196,7 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
   }
 
   // Calculate link positions / text / colors / etc.
-  function generateDrawnLink(d: Link, i: number): DrawnLink | null {
+  function generateDrawnLink(d: Link, i: number, layoutNodes: DrawnNode[]): DrawnLink | null {
     let toReturn: DrawnLink = { ...d, sides: { A: { ...d.sides.A }, Z: { ...d.sides.Z } } } as DrawnLink;
     toReturn.index = i;
 
@@ -208,8 +205,8 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
     );
 
     // Set the link's source and target node
-    const source = nodes.find((n) => n.id === toReturn.nodes[0].id);
-    const target = nodes.find((n) => n.id === toReturn.nodes[1].id);
+    const source = layoutNodes.find((n) => n.id === toReturn.nodes[0].id);
+    const target = layoutNodes.find((n) => n.id === toReturn.nodes[1].id);
     if (!source || !target) {
       console.warn(`Network Weathermap: Skipping link "${toReturn.id}" because one or both nodes are missing.`);
       return null;
@@ -228,8 +225,8 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
     );
 
     // Calculate positions for links and arrow polygons. Not included above to help with typing.
-    toReturn.lineStartA = getMultiLinkPosition(tempNodes[toReturn.source.index], toReturn.sides.A);
-    toReturn.lineStartZ = getMultiLinkPosition(tempNodes[toReturn.target.index], toReturn.sides.Z);
+    toReturn.lineStartA = getMultiLinkPosition(layoutNodes[toReturn.source.index], toReturn.sides.A);
+    toReturn.lineStartZ = getMultiLinkPosition(layoutNodes[toReturn.target.index], toReturn.sides.Z);
 
     toReturn.lineEndA = getMiddlePoint(
       toReturn.lineStartZ,
@@ -237,7 +234,7 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
       -toReturn.arrows.offset - toReturn.arrows.height
     );
 
-    if (tempNodes[toReturn.target.index].isConnection) {
+    if (layoutNodes[toReturn.target.index].isConnection) {
       toReturn.lineEndA = toReturn.lineStartZ;
       toReturn.lineEndZ = toReturn.lineStartZ;
     }
@@ -266,19 +263,21 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
     return toReturn;
   }
 
-  function buildDrawnLinks(sourceLinks: Link[]): DrawnLink[] {
-    tempNodes = tempNodes.map((n) => {
-      n.anchors = {
-        0: { numLinks: n.anchors[0].numLinks, numFilledLinks: 0 },
-        1: { numLinks: n.anchors[1].numLinks, numFilledLinks: 0 },
-        2: { numLinks: n.anchors[2].numLinks, numFilledLinks: 0 },
-        3: { numLinks: n.anchors[3].numLinks, numFilledLinks: 0 },
-        4: { numLinks: n.anchors[4].numLinks, numFilledLinks: 0 },
-      };
-      return n;
-    });
+  function buildDrawnLinks(sourceLinks: Link[], sourceNodes: DrawnNode[] = nodes): DrawnLink[] {
+    const layoutNodes = sourceNodes.map((node) => ({
+      ...node,
+      anchors: {
+        0: { numLinks: node.anchors[0].numLinks, numFilledLinks: 0 },
+        1: { numLinks: node.anchors[1].numLinks, numFilledLinks: 0 },
+        2: { numLinks: node.anchors[2].numLinks, numFilledLinks: 0 },
+        3: { numLinks: node.anchors[3].numLinks, numFilledLinks: 0 },
+        4: { numLinks: node.anchors[4].numLinks, numFilledLinks: 0 },
+      },
+    }));
 
-    return sourceLinks.map((d, i) => generateDrawnLink(d, i)).filter((link): link is DrawnLink => link !== null);
+    return sourceLinks
+      .map((link, index) => generateDrawnLink(link, index, layoutNodes))
+      .filter((link): link is DrawnLink => link !== null);
   }
 
   // Minimize uneeded state changes
@@ -297,8 +296,6 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options, data]);
-
-  tempNodes = nodes.slice();
 
   // Update links on props/data change
   // TODO: Optimize this to only update the necessary links?
@@ -360,7 +357,7 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
       return;
     }
 
-    const enrichedLink = enrichHoveredLinkData(d, links, tempNodes, (message) => console.warn(message));
+    const enrichedLink = enrichHoveredLinkData(d, links, nodes, (message) => console.warn(message));
     setHoveredLink({ link: enrichedLink, side, mouseEvent: e });
   };
 
@@ -382,7 +379,7 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
 
   if (wm) {
     const renderedLinkContexts = links.map((link) =>
-      buildRenderLinkContext(link, links, tempNodes, (message) => console.warn(message))
+      buildRenderLinkContext(link, links, nodes, (message) => console.warn(message))
     );
 
     const tooltipGraphFrames = hoveredLink
@@ -702,7 +699,7 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
                       }}
                       style={safeADashboardLink ? { cursor: 'pointer' } : {}}
                     ></line>
-                    {tempNodes[d.source.index].isConnection ? (
+                    {nodes[d.source.index].isConnection ? (
                       <circle
                         cx={d.lineStartA.x}
                         cy={d.lineStartA.y}
@@ -713,7 +710,7 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
                     ) : (
                       ''
                     )}
-                    {tempNodes[d.target.index].isConnection ? (
+                    {nodes[d.target.index].isConnection ? (
                       ''
                     ) : (
                       <React.Fragment>
@@ -791,7 +788,7 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
                 const transform = getPercentPoint(
                   d.lineStartZ,
                   d.lineStartA,
-                  (tempNodes[d.target.index].isConnection ? 1 : 0.5) * (d.sides.A.labelOffset / 100)
+                  (nodes[d.target.index].isConnection ? 1 : 0.5) * (d.sides.A.labelOffset / 100)
                 );
                 return (
                   <g
@@ -839,7 +836,7 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
             </g>
             <g>
               {renderedLinkContexts.map(({ link: d }, i) => {
-                if (d.nodes[0].id === d.nodes[1].id || tempNodes[d.target.index].isConnection) {
+                if (d.nodes[0].id === d.nodes[1].id || nodes[d.target.index].isConnection) {
                   return;
                 }
                 const transform = getPercentPoint(d.lineStartA, d.lineStartZ, 0.5 * (d.sides.Z.labelOffset / 100));
@@ -906,8 +903,6 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
                       setDraggedNode(d);
                       const scaledPos = getScaledMousePos({ x: position.deltaX, y: position.deltaY });
                       setNodes((prevState) => applyNodeDrag(prevState, selectedNodes, i, scaledPos));
-                      tempNodes = nodes.slice();
-                      setLinks(buildDrawnLinks(wm.links));
                     },
                     onStop: (e, position) => {
                       // setDraggedNode(null as unknown as DrawnNode);
@@ -919,11 +914,11 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
                       });
                     },
                     onClick: (e) => {
-                      const safeNodeDashboardLink = sanitizeExternalUrl(tempNodes[i].dashboardLink, {
+                      const safeNodeDashboardLink = sanitizeExternalUrl(nodes[i].dashboardLink, {
                         allowRelative: true,
                       });
                       if (e.ctrlKey && isEditMode) {
-                        setSelectedNodes((selected) => toggleSelectedNode(selected, tempNodes[i]));
+                        setSelectedNodes((selected) => toggleSelectedNode(selected, nodes[i]));
                       } else if (!isEditMode && safeNodeDashboardLink) {
                         openSafeUrl(safeNodeDashboardLink);
                       }
