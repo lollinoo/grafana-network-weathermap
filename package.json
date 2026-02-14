@@ -74,6 +74,7 @@
     "@babel/helpers": "^7.28.6",
     "@babel/runtime": "^7.28.6",
     "@babel/traverse": "^7.29.0",
+    "@sentry/browser": "^7.119.1",
     "braces": "^3.0.3",
     "cross-spawn": "^7.0.5",
     "diff": "^4.0.4",
@@ -82,9 +83,16 @@
     "form-data": "^4.0.5",
     "js-yaml": "^4.1.1",
     "micromatch": "^4.0.8",
+    "minimatch@3.1.2": {
+      "brace-expansion": "1.1.12"
+    },
     "nanoid": "^3.3.8",
+    "lodash": "^4.17.23",
+    "prismjs": "^1.30.0",
+    "path-to-regexp": "^8.3.0",
     "qs": "^6.14.1",
     "serialize-javascript": "^6.0.2",
+    "uplot": "^1.6.32",
     "ws": "^8.19.0",
     "jsdom": {
       "form-data": "^4.0.4",
