@@ -163,10 +163,7 @@ test('Check edit mode display', () => {
     testProps.options = options;
   };
 
-  // @ts-ignore
-  delete window.location;
-  // @ts-ignore
-  window.location = new URL('https://www.example.com/?editPanel=1');
+  window.history.pushState({}, '', '/?editPanel=1');
   // Render the panel
   const { container, rerender } = render(<WeathermapPanel {...testProps} />);
 
@@ -182,8 +179,7 @@ test('Check edit mode display', () => {
   fireEvent.wheel(container.querySelector('#nw-testing_')!, { deltaY: -1 });
   expect(testProps.options.weathermap.settings.panel.zoomScale).toEqual(0);
 
-  // @ts-ignore
-  window.location = new URL('https://www.example.com/');
+  window.history.pushState({}, '', '/');
   rerender(<WeathermapPanel {...testProps} />);
   fireEvent.wheel(container.querySelector('#nw-testing')!, { deltaY: -1 });
   expect(testProps.options.weathermap.settings.panel.zoomScale).toEqual(0);
