@@ -33,7 +33,6 @@ const createLink = (config: {
       Z: createSide(config.sideZ),
     },
     units: 'bps',
-    arrows: { width: 4, height: 4, offset: 4 },
     stroke: 2,
     showThroughputPercentage: false,
     index: 0,
@@ -41,12 +40,8 @@ const createLink = (config: {
     target: { id: config.targetId, index: config.targetIndex, label: config.targetId },
     lineStartA: { x: 0, y: 0 },
     lineEndA: { x: 0, y: 0 },
-    arrowCenterA: { x: 0, y: 0 },
-    arrowPolygonA: { p1: { x: 0, y: 0 }, p2: { x: 0, y: 0 } },
     lineStartZ: { x: 0, y: 0 },
     lineEndZ: { x: 0, y: 0 },
-    arrowCenterZ: { x: 0, y: 0 },
-    arrowPolygonZ: { p1: { x: 0, y: 0 }, p2: { x: 0, y: 0 } },
   };
 
   return link as DrawnLink;

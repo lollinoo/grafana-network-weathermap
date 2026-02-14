@@ -21,8 +21,11 @@ interface LinkLabelsLayerProps {
   onLinkHover: (link: DrawnLink, side: 'A' | 'Z', event: any) => void;
   onLinkHoverLoss: (event: any) => void;
   onLinkClick: (link: DrawnLink, side: 'A' | 'Z', event: React.MouseEvent<SVGGElement>) => void;
+  onLabelDragStart?: (link: DrawnLink, side: 'A' | 'Z', event: React.MouseEvent<SVGGElement>) => void;
   isEditMode: boolean;
   selectedLinkId?: string;
+  draggingLabelSide?: 'A' | 'Z';
+  draggingLinkId?: string;
   selectionColor: string;
 }
 
@@ -38,8 +41,11 @@ export const LinkLabelsLayer: React.FC<LinkLabelsLayerProps> = ({
   onLinkHover,
   onLinkHoverLoss,
   onLinkClick,
+  onLabelDragStart,
   isEditMode,
   selectedLinkId,
+  draggingLabelSide,
+  draggingLinkId,
   selectionColor,
 }) => {
   return (
@@ -54,6 +60,7 @@ export const LinkLabelsLayer: React.FC<LinkLabelsLayerProps> = ({
         const transform = getLinkLabelTransform(d, side, nodes);
         const labelMetrics = getLinkLabelMetrics(text, fontSize);
         const isEditorSelected = selectedLinkId === d.id;
+        const isBeingDragged = draggingLinkId === d.id && draggingLabelSide === side;
 
         return (
           <g
@@ -64,7 +71,14 @@ export const LinkLabelsLayer: React.FC<LinkLabelsLayerProps> = ({
             }}
             onMouseOut={onLinkHoverLoss}
             onClick={(e) => onLinkClick(d, side, e)}
-            style={isEditMode ? { cursor: 'pointer' } : {}}
+            onMouseDown={(e) => {
+              if (isEditMode && onLabelDragStart) {
+                e.stopPropagation();
+                e.preventDefault();
+                onLabelDragStart(d, side, e);
+              }
+            }}
+            style={isEditMode ? { cursor: isBeingDragged ? 'grabbing' : isEditorSelected ? 'grab' : 'pointer' } : {}}
             key={i}
           >
             <rect
@@ -74,9 +88,11 @@ export const LinkLabelsLayer: React.FC<LinkLabelsLayerProps> = ({
               height={labelMetrics.rectHeight}
               fill={getSolidFromAlphaColor(backgroundColor, panelBackgroundColor)}
               stroke={
-                isEditorSelected ? selectionColor : getSolidFromAlphaColor(borderColor, panelBackgroundColor)
+                isBeingDragged ? '#FF9800'
+                  : isEditorSelected ? selectionColor
+                    : getSolidFromAlphaColor(borderColor, panelBackgroundColor)
               }
-              strokeWidth={isEditorSelected ? 3 : 2}
+              strokeWidth={isBeingDragged ? 4 : isEditorSelected ? 3 : 2}
               rx={labelMetrics.rectRadius}
             ></rect>
             <text x={0} y={labelMetrics.textY} textAnchor={'middle'} fontSize={`${fontSize}px`} fill={fontColor}>

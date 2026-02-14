@@ -103,7 +103,6 @@ export interface Link {
     Z: LinkSide;
   };
   units: string | undefined;
-  arrows: ArrowOptions;
   stroke: number;
   showThroughputPercentage: boolean;
   waypoints?: Position[];
@@ -146,12 +145,8 @@ export interface DrawnLink extends Link {
   target: DrawnNode;
   lineStartA: Position;
   lineEndA: Position;
-  arrowCenterA: Position;
-  arrowPolygonA: any;
   lineStartZ: Position;
   lineEndZ: Position;
-  arrowCenterZ: Position;
-  arrowPolygonZ: any;
   segments?: LinkSegment[];
 }
 
@@ -159,12 +154,6 @@ export interface HoveredLink {
   link: DrawnLink;
   side: 'A' | 'Z';
   mouseEvent: any;
-}
-
-export interface ArrowOptions {
-  width: number;
-  height: number;
-  offset: number;
 }
 
 export interface WeathermapSettings {
@@ -219,6 +208,7 @@ export interface Weathermap {
     selectedType?: 'node' | 'link';
     selectedNodeId?: string;
     selectedLinkId?: string;
+    selectedWaypointIdx?: number;
   };
   persistentSectionState?: Record<string, boolean>;
   nodeTemplates?: NodeTemplate[];

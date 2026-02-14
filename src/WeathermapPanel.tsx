@@ -33,7 +33,8 @@ import { LinkSegmentsLayer } from 'components/LinkSegmentsLayer';
 import { NodeLayer } from 'components/NodeLayer';
 import ColorScale from 'components/ColorScale';
 import { LinkTooltip } from 'components/LinkTooltip';
-import { getArrowPolygon, getLinkValueFormatter, getMiddlePoint } from 'panel/linkMath';
+import { getLinkValueFormatter, getMiddlePoint } from './panel/linkMath';
+import { getProjectionFractionOnPolyline } from 'panel/linkLabelLayout';
 import { enrichHoveredLinkData } from 'panel/hoverLink';
 import { buildDrawnLinkSidesWithMetrics, collectSeriesValuesByFrameId, SeriesValueById } from 'panel/linkMetrics';
 import { applyNodeDrag, commitNodePositions, commitPanelOffset, toggleSelectedNode } from 'panel/nodeInteractions';
@@ -237,67 +238,27 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
       }
       toReturn.segments = segments;
 
-      // For waypointed links the A-side line goes from source anchor to first waypoint
-      toReturn.lineEndA = d.waypoints[0];
-
-      // The Z-side line goes from last waypoint to target anchor (with arrow offsets)
-      const lastWp = d.waypoints[d.waypoints.length - 1];
+      // Compute end points - for waypointed links, we draw the A-side line all the way to Z
+      toReturn.lineEndA = toReturn.lineStartZ;
+      toReturn.lineEndZ = toReturn.lineStartZ;
+    } else {
+      // Original non-waypointed behavior - split at middle
+      toReturn.lineEndA = getMiddlePoint(
+        toReturn.lineStartZ,
+        toReturn.lineStartA,
+        0
+      );
 
       if (layoutNodes[toReturn.target.index].isConnection) {
         toReturn.lineEndA = toReturn.lineStartZ;
         toReturn.lineEndZ = toReturn.lineStartZ;
       } else {
-        toReturn.lineEndZ = getMiddlePoint(toReturn.lineStartZ, lastWp, toReturn.arrows.offset + toReturn.arrows.height);
+        toReturn.lineEndZ = getMiddlePoint(
+          toReturn.lineStartZ,
+          toReturn.lineStartA,
+          0
+        );
       }
-
-      // Arrows are computed on the final segment direction (lastWp → target)
-      toReturn.arrowCenterA = getMiddlePoint(toReturn.lineStartZ, lastWp, -toReturn.arrows.offset);
-      toReturn.arrowPolygonA = getArrowPolygon(
-        lastWp,
-        toReturn.arrowCenterA,
-        toReturn.arrows.height,
-        toReturn.arrows.width
-      );
-      toReturn.arrowCenterZ = getMiddlePoint(toReturn.lineStartZ, lastWp, toReturn.arrows.offset);
-      toReturn.arrowPolygonZ = getArrowPolygon(
-        toReturn.lineStartZ,
-        toReturn.arrowCenterZ,
-        toReturn.arrows.height,
-        toReturn.arrows.width
-      );
-    } else {
-      // Original non-waypointed behavior
-      toReturn.lineEndA = getMiddlePoint(
-        toReturn.lineStartZ,
-        toReturn.lineStartA,
-        -toReturn.arrows.offset - toReturn.arrows.height
-      );
-
-      if (layoutNodes[toReturn.target.index].isConnection) {
-        toReturn.lineEndA = toReturn.lineStartZ;
-        toReturn.lineEndZ = toReturn.lineStartZ;
-      }
-
-      toReturn.arrowCenterA = getMiddlePoint(toReturn.lineStartZ, toReturn.lineStartA, -toReturn.arrows.offset);
-      toReturn.arrowPolygonA = getArrowPolygon(
-        toReturn.lineStartA,
-        toReturn.arrowCenterA,
-        toReturn.arrows.height,
-        toReturn.arrows.width
-      );
-
-      toReturn.lineEndZ = getMiddlePoint(
-        toReturn.lineStartZ,
-        toReturn.lineStartA,
-        toReturn.arrows.offset + toReturn.arrows.height
-      );
-      toReturn.arrowCenterZ = getMiddlePoint(toReturn.lineStartZ, toReturn.lineStartA, toReturn.arrows.offset);
-      toReturn.arrowPolygonZ = getArrowPolygon(
-        toReturn.lineStartZ,
-        toReturn.arrowCenterZ,
-        toReturn.arrows.height,
-        toReturn.arrows.width
-      );
     }
 
     return toReturn;
@@ -364,7 +325,30 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
    * the onClick handler to believe we were still dragging after mouseUp.
    */
   const dragRef = useRef({ isMouseDown: false, hasMoved: false });
-  const waypointDragRef = useRef<{ linkIdx: number; wpIdx: number; startX: number; startY: number } | null>(null);
+  const waypointDragRef = useRef<{ linkIdx: number; linkId: string; wpIdx: number; hasMoved: boolean } | null>(null);
+  const labelDragRef = useRef<{ linkId: string; linkIdx: number; side: 'A' | 'Z'; hasMoved: boolean } | null>(null);
+  // Track active drag for visual feedback (triggers re-render for border color change)
+  const [activeDrag, setActiveDrag] = useState<'waypoint' | 'label' | null>(null);
+
+  /**
+   * Convert client (screen) mouse coordinates to the SVG world coordinate space
+   * used by nodes, waypoints, and labels (i.e. inside the <g translate> group).
+   */
+  function clientToWorldCoords(clientX: number, clientY: number, svgEl: SVGSVGElement): Position | null {
+    const ctm = svgEl.getScreenCTM();
+    if (!ctm) {
+      return null;
+    }
+    const pt = svgEl.createSVGPoint();
+    pt.x = clientX;
+    pt.y = clientY;
+    const svgPt = pt.matrixTransform(ctm.inverse());
+    // Subtract the <g translate> offset to get into world coordinate space
+    return {
+      x: svgPt.x - panelTranslateOffset.x,
+      y: svgPt.y - panelTranslateOffset.y,
+    };
+  }
 
   // Remove the old isDragging state
   // const [isDragging, setDragging] = useState(false);
@@ -404,15 +388,17 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
 
   const [hoveredLink, setHoveredLink] = useState(null as unknown as HoveredLink);
 
-  const selectEditorEntity = (type: 'node' | 'link', id: string) => {
+  const selectEditorEntity = (type: 'node' | 'link', id: string, waypointIdx?: number) => {
     if (!isEditMode) {
       return;
     }
 
     const previous = wm.editorSelection;
+    // If clicking the same entity with the same waypoint, do nothing
     if (
       previous?.selectedType === type &&
-      ((type === 'node' && previous.selectedNodeId === id) || (type === 'link' && previous.selectedLinkId === id))
+      ((type === 'node' && previous.selectedNodeId === id) || (type === 'link' && previous.selectedLinkId === id)) &&
+      previous.selectedWaypointIdx === waypointIdx
     ) {
       return;
     }
@@ -425,6 +411,7 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
           selectedType: type,
           selectedNodeId: type === 'node' ? id : previous?.selectedNodeId,
           selectedLinkId: type === 'link' ? id : previous?.selectedLinkId,
+          selectedWaypointIdx: waypointIdx,
         },
       },
     });
@@ -449,6 +436,20 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
   const handleLinkClick = (link: DrawnLink, _side: 'A' | 'Z', e: any) => {
     e.stopPropagation();
     selectEditorEntity('link', link.id);
+  };
+
+  const handleLabelDragStart = (link: DrawnLink, side: 'A' | 'Z', _e: React.MouseEvent<SVGGElement>) => {
+    // Only start drag if this link is already selected (click-first-then-drag UX)
+    const isAlreadySelected = wm.editorSelection?.selectedType === 'link' && wm.editorSelection?.selectedLinkId === link.id;
+    if (!isAlreadySelected) {
+      // First click: just select the link — don't start drag
+      selectEditorEntity('link', link.id);
+      return;
+    }
+    const linkIdx = wm.links.findIndex((l) => l.id === link.id);
+    if (linkIdx >= 0) {
+      labelDragRef.current = { linkId: link.id, linkIdx, side, hasMoved: false };
+    }
   };
 
   const handleNodeDrag = (nodeIndex: number, e: any, position: any) => {
@@ -588,24 +589,86 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
             dragRef.current.hasMoved = false;
           }}
           onMouseMove={(e) => {
-            // Handle waypoint dragging
+            const svgEl = (e.currentTarget as unknown) as SVGSVGElement;
+
+            // Handle waypoint dragging (absolute positioning via getScreenCTM)
             if (waypointDragRef.current) {
               e.preventDefault();
-              const scaledDelta = getScaledMousePos({
-                x: e.nativeEvent.movementX,
-                y: e.nativeEvent.movementY,
-              });
               const ref = waypointDragRef.current;
+              const worldPos = clientToWorldCoords(e.clientX, e.clientY, svgEl);
+              if (!worldPos) {
+                return;
+              }
+              if (!ref.hasMoved) {
+                ref.hasMoved = true;
+                setActiveDrag('waypoint');
+              }
               const currentWm = { ...wm };
               if (currentWm.links[ref.linkIdx]?.waypoints?.[ref.wpIdx]) {
                 currentWm.links[ref.linkIdx].waypoints![ref.wpIdx] = {
-                  x: currentWm.links[ref.linkIdx].waypoints![ref.wpIdx].x + scaledDelta.x,
-                  y: currentWm.links[ref.linkIdx].waypoints![ref.wpIdx].y + scaledDelta.y,
+                  x: Math.round(worldPos.x),
+                  y: Math.round(worldPos.y),
                 };
                 onOptionsChange({ weathermap: currentWm });
               }
               return;
             }
+
+            // Handle label dragging along link path
+            if (labelDragRef.current) {
+              e.preventDefault();
+              const ref = labelDragRef.current;
+              if (!ref.hasMoved) {
+                ref.hasMoved = true;
+                setActiveDrag('label');
+              }
+              const drawnLink = links.find((l) => l.id === ref.linkId);
+              if (!drawnLink) {
+                return;
+              }
+
+              const worldPos = clientToWorldCoords(e.clientX, e.clientY, svgEl);
+              if (!worldPos) {
+                return;
+              }
+
+              // Build polyline points
+              let polyPoints: Position[];
+              if (drawnLink.segments && drawnLink.segments.length > 1) {
+                polyPoints = [drawnLink.lineStartA];
+                for (let si = 1; si < drawnLink.segments.length; si++) {
+                  polyPoints.push(drawnLink.segments[si].start);
+                }
+                polyPoints.push(drawnLink.lineStartZ);
+              } else {
+                polyPoints = [drawnLink.lineStartA, drawnLink.lineStartZ];
+              }
+
+              // Project mouse onto polyline and get fraction
+              const fraction = getProjectionFractionOnPolyline(polyPoints, worldPos);
+
+              // Convert fraction to labelOffset percentage
+              // A-side: fraction maps to first half (0–0.5) → offset = fraction * 2 * 100
+              // Z-side: fraction maps to second half (0.5–1) → offset = (1 - fraction) * 2 * 100
+              let newOffset: number;
+              if (ref.side === 'A') {
+                newOffset = Math.max(1, Math.min(100, Math.round(fraction * 2 * 100)));
+              } else {
+                newOffset = Math.max(1, Math.min(100, Math.round((1 - fraction) * 2 * 100)));
+              }
+
+              // Immutable update so React detects the change in the form
+              const currentWm = { ...wm, links: [...wm.links] };
+              const updatedLink = { ...currentWm.links[ref.linkIdx] };
+              updatedLink.sides = {
+                ...updatedLink.sides,
+                [ref.side]: { ...updatedLink.sides[ref.side], labelOffset: newOffset },
+              };
+              currentWm.links[ref.linkIdx] = updatedLink;
+              onOptionsChange({ weathermap: currentWm });
+              return;
+            }
+
             if (dragRef.current.isMouseDown) {
               dragRef.current.hasMoved = true;
               if (e.ctrlKey || e.buttons === 4 || e.shiftKey) {
@@ -614,9 +677,21 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
             }
           }}
           onMouseUp={() => {
-            // Complete waypoint drag
+            // Complete waypoint interaction (click or drag)
             if (waypointDragRef.current) {
+              const ref = waypointDragRef.current;
+              if (!ref.hasMoved) {
+                // Pure click: select the waypoint
+                selectEditorEntity('link', ref.linkId, ref.wpIdx);
+              }
               waypointDragRef.current = null;
+              setActiveDrag(null);
+              return;
+            }
+            // Complete label drag
+            if (labelDragRef.current) {
+              labelDragRef.current = null;
+              setActiveDrag(null);
               return;
             }
             dragRef.current.isMouseDown = false;
@@ -710,8 +785,11 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
               onLinkHover={handleLinkHover}
               onLinkHoverLoss={handleLinkHoverLoss}
               onLinkClick={handleLinkClick}
+              onLabelDragStart={handleLabelDragStart}
               isEditMode={isEditMode}
               selectedLinkId={wm.editorSelection?.selectedType === 'link' ? wm.editorSelection.selectedLinkId : undefined}
+              draggingLabelSide={activeDrag === 'label' && labelDragRef.current ? labelDragRef.current.side : undefined}
+              draggingLinkId={activeDrag === 'label' && labelDragRef.current ? labelDragRef.current.linkId : undefined}
               selectionColor={theme.colors.primary.main}
             />
             <LinkLabelsLayer
@@ -726,8 +804,11 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
               onLinkHover={handleLinkHover}
               onLinkHoverLoss={handleLinkHoverLoss}
               onLinkClick={handleLinkClick}
+              onLabelDragStart={handleLabelDragStart}
               isEditMode={isEditMode}
               selectedLinkId={wm.editorSelection?.selectedType === 'link' ? wm.editorSelection.selectedLinkId : undefined}
+              draggingLabelSide={activeDrag === 'label' && labelDragRef.current ? labelDragRef.current.side : undefined}
+              draggingLinkId={activeDrag === 'label' && labelDragRef.current ? labelDragRef.current.linkId : undefined}
               selectionColor={theme.colors.primary.main}
             />
             <NodeLayer
@@ -747,25 +828,56 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
               if (!link.waypoints || link.waypoints.length === 0) {
                 return null;
               }
-              const isSelected = wm.editorSelection?.selectedType === 'link' && wm.editorSelection?.selectedLinkId === link.id;
-              return link.waypoints.map((wp, wpIdx) => (
-                <circle
-                  key={`wp-${linkIdx}-${wpIdx}`}
-                  cx={wp.x}
-                  cy={wp.y}
-                  r={isSelected ? 6 : 4}
-                  fill={isSelected ? theme.colors.primary.main : theme.colors.text.secondary}
-                  stroke={isSelected ? theme.colors.primary.border : 'transparent'}
-                  strokeWidth={2}
-                  opacity={isSelected ? 0.9 : 0.4}
-                  style={{ cursor: 'grab' }}
-                  onMouseDown={(e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    waypointDragRef.current = { linkIdx, wpIdx, startX: wp.x, startY: wp.y };
-                  }}
-                />
-              ));
+              const isLinkSelected = wm.editorSelection?.selectedType === 'link' && wm.editorSelection?.selectedLinkId === link.id;
+              return link.waypoints.map((wp, wpIdx) => {
+                const isWpSelected = isLinkSelected && wm.editorSelection?.selectedWaypointIdx === wpIdx;
+                const isBeingDragged = activeDrag === 'waypoint' && waypointDragRef.current?.linkIdx === linkIdx && waypointDragRef.current?.wpIdx === wpIdx;
+                return (
+                  <React.Fragment key={`wp-${linkIdx}-${wpIdx}`}>
+                    {/* Large invisible hit area for reliable click/drag at all zoom levels */}
+                    <circle
+                      cx={wp.x}
+                      cy={wp.y}
+                      r={16}
+                      fill="transparent"
+                      stroke="none"
+                      pointerEvents="all"
+                      style={{ cursor: isLinkSelected ? 'grab' : 'pointer' }}
+                      onMouseDown={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        if (!isLinkSelected) {
+                          // First click: select the link + specific waypoint
+                          selectEditorEntity('link', link.id, wpIdx);
+                          return;
+                        }
+                        // Link already selected: prepare for drag (visual feedback on first move)
+                        waypointDragRef.current = { linkIdx, linkId: link.id, wpIdx, hasMoved: false };
+                      }}
+                      onClick={(e) => {
+                        // Prevent SVG onClick from clearing the selection we just set
+                        e.stopPropagation();
+                      }}
+                    />
+                    {/* Visible waypoint indicator */}
+                    <circle
+                      cx={wp.x}
+                      cy={wp.y}
+                      r={isWpSelected ? 8 : isLinkSelected ? 6 : 4}
+                      fill={isWpSelected ? theme.colors.primary.main : isLinkSelected ? theme.colors.primary.shade : theme.colors.text.secondary}
+                      stroke={
+                        isBeingDragged ? theme.colors.warning.main
+                          : isWpSelected ? theme.colors.primary.contrastText
+                            : isLinkSelected ? theme.colors.primary.border
+                              : 'transparent'
+                      }
+                      strokeWidth={isBeingDragged ? 4 : isWpSelected ? 3 : 2}
+                      opacity={isLinkSelected ? 0.9 : 0.4}
+                      pointerEvents="none"
+                    />
+                  </React.Fragment>
+                );
+              });
             })}
           </g>
         </svg>
@@ -783,7 +895,7 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
         >
           {wm.settings.panel.showTimestamp ? timeRange.to.toLocaleString() : ''}
         </div>
-      </div>
+      </div >
     );
   } else {
     return <React.Fragment />;

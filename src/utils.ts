@@ -319,11 +319,6 @@ export function generateBasicLink(nodes?: [Node, Node]): Link {
       },
     },
     units: undefined,
-    arrows: {
-      width: 8,
-      height: 10,
-      offset: 2,
-    },
     stroke: 8,
     showThroughputPercentage: false,
   };

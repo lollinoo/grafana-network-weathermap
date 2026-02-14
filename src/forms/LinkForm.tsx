@@ -180,11 +180,6 @@ export const LinkForm = (props: Props) => {
       },
       units: undefined,
       stroke: 8,
-      arrows: {
-        width: 8,
-        height: 10,
-        offset: 2,
-      },
       showThroughputPercentage: false,
     };
     weathermap.nodes[0].anchors[Anchor.Center].numLinks += 2;
@@ -434,7 +429,7 @@ export const LinkForm = (props: Props) => {
                 />
               </InlineField>
               <ControlledCollapse
-                label="Stroke and Arrow"
+                label="Stroke"
                 isOpen={getStrokePanelOpen(link.id)}
                 onToggle={(isOpen) => setStrokePanelOpen(link.id, isOpen)}
               >
@@ -451,51 +446,6 @@ export const LinkForm = (props: Props) => {
                     }}
                   />
                 </InlineField>
-                {link.nodes[1].isConnection ? (
-                  ''
-                ) : (
-                  <React.Fragment>
-                    <InlineField grow label="Arrow Width" className={styles.inlineField}>
-                      <Slider
-                        min={0}
-                        max={30}
-                        value={link.arrows.width}
-                        step={1}
-                        onChange={(num) => {
-                          let options = value;
-                          options.links[i].arrows.width = num;
-                          onChange(options);
-                        }}
-                      />
-                    </InlineField>
-                    <InlineField grow label="Arrow Height" className={styles.inlineField}>
-                      <Slider
-                        min={0}
-                        max={30}
-                        value={link.arrows.height}
-                        step={1}
-                        onChange={(num) => {
-                          let options = value;
-                          options.links[i].arrows.height = num;
-                          onChange(options);
-                        }}
-                      />
-                    </InlineField>
-                    <InlineField grow label="Arrow Offset" className={styles.inlineField}>
-                      <Slider
-                        min={0}
-                        max={10}
-                        value={link.arrows.offset}
-                        step={1}
-                        onChange={(num) => {
-                          let options = value;
-                          options.links[i].arrows.offset = num;
-                          onChange(options);
-                        }}
-                      />
-                    </InlineField>
-                  </React.Fragment>
-                )}
                 <Button
                   variant="primary"
                   size="md"
@@ -506,7 +456,6 @@ export const LinkForm = (props: Props) => {
 
                     let weathermap: Weathermap = value;
                     for (let link of weathermap.links) {
-                      link.arrows = { ...currentLink.arrows };
                       link.stroke = currentLink.stroke;
                     }
                     onChange(weathermap);
@@ -518,64 +467,82 @@ export const LinkForm = (props: Props) => {
               </ControlledCollapse>
               <ControlledCollapse
                 label="Waypoints"
-                isOpen={getStrokePanelOpen(`waypoints-${link.id}`)}
+                isOpen={getStrokePanelOpen(`waypoints-${link.id}`) || value.editorSelection?.selectedWaypointIdx !== undefined}
                 onToggle={(isOpen) => setStrokePanelOpen(`waypoints-${link.id}`, isOpen)}
               >
-                {(link.waypoints ?? []).map((wp, wi) => (
-                  <InlineFieldRow key={wi} className={styles.row2}>
-                    <InlineField label={`#${wi + 1} X`} grow className={styles.inlineField}>
-                      <Input
-                        type="number"
-                        value={wp.x}
-                        onChange={(e) => {
+                {(link.waypoints ?? []).map((wp, wi) => {
+                  const isWpActive = value.editorSelection?.selectedWaypointIdx === wi;
+                  return (
+                    <InlineFieldRow
+                      key={wi}
+                      className={styles.row2}
+                      style={isWpActive ? {
+                        borderLeft: '3px solid var(--primary-main, #3274d9)',
+                        paddingLeft: '6px',
+                        background: 'rgba(50,116,217,0.08)',
+                      } : {}}
+                    >
+                      <InlineField label={`#${wi + 1} X`} grow className={styles.inlineField}>
+                        <Input
+                          type="number"
+                          value={wp.x}
+                          onChange={(e) => {
+                            let weathermap: Weathermap = value;
+                            if (!weathermap.links[i].waypoints) {
+                              return;
+                            }
+                            weathermap.links[i].waypoints![wi] = {
+                              ...weathermap.links[i].waypoints![wi],
+                              x: e.currentTarget.valueAsNumber,
+                            };
+                            onChange(weathermap);
+                          }}
+                        />
+                      </InlineField>
+                      <InlineField label="Y" grow className={styles.inlineField}>
+                        <Input
+                          type="number"
+                          value={wp.y}
+                          onChange={(e) => {
+                            let weathermap: Weathermap = value;
+                            if (!weathermap.links[i].waypoints) {
+                              return;
+                            }
+                            weathermap.links[i].waypoints![wi] = {
+                              ...weathermap.links[i].waypoints![wi],
+                              y: e.currentTarget.valueAsNumber,
+                            };
+                            onChange(weathermap);
+                          }}
+                        />
+                      </InlineField>
+                      <Button
+                        variant="destructive"
+                        icon="trash-alt"
+                        size="sm"
+                        onClick={() => {
                           let weathermap: Weathermap = value;
                           if (!weathermap.links[i].waypoints) {
                             return;
                           }
-                          weathermap.links[i].waypoints![wi] = {
-                            ...weathermap.links[i].waypoints![wi],
-                            x: e.currentTarget.valueAsNumber,
-                          };
-                          onChange(weathermap);
-                        }}
-                      />
-                    </InlineField>
-                    <InlineField label="Y" grow className={styles.inlineField}>
-                      <Input
-                        type="number"
-                        value={wp.y}
-                        onChange={(e) => {
-                          let weathermap: Weathermap = value;
-                          if (!weathermap.links[i].waypoints) {
-                            return;
+                          weathermap.links[i].waypoints!.splice(wi, 1);
+                          if (weathermap.links[i].waypoints!.length === 0) {
+                            weathermap.links[i].waypoints = undefined;
                           }
-                          weathermap.links[i].waypoints![wi] = {
-                            ...weathermap.links[i].waypoints![wi],
-                            y: e.currentTarget.valueAsNumber,
-                          };
+                          // Clear waypoint selection if removed
+                          if (weathermap.editorSelection?.selectedWaypointIdx === wi) {
+                            weathermap.editorSelection = {
+                              ...weathermap.editorSelection,
+                              selectedWaypointIdx: undefined,
+                            };
+                          }
                           onChange(weathermap);
                         }}
+                        tooltip="Remove waypoint"
                       />
-                    </InlineField>
-                    <Button
-                      variant="destructive"
-                      icon="trash-alt"
-                      size="sm"
-                      onClick={() => {
-                        let weathermap: Weathermap = value;
-                        if (!weathermap.links[i].waypoints) {
-                          return;
-                        }
-                        weathermap.links[i].waypoints!.splice(wi, 1);
-                        if (weathermap.links[i].waypoints!.length === 0) {
-                          weathermap.links[i].waypoints = undefined;
-                        }
-                        onChange(weathermap);
-                      }}
-                      tooltip="Remove waypoint"
-                    />
-                  </InlineFieldRow>
-                ))}
+                    </InlineFieldRow>
+                  );
+                })}
                 <Button
                   variant="secondary"
                   icon="plus"

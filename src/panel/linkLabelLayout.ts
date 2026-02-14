@@ -56,7 +56,7 @@ export function getLinkLabelTransform(link: DrawnLink, side: LinkLabelSide, node
 /**
  * Find a point at a given fraction (0–1) along a polyline defined by ordered points.
  */
-function getPointAlongPolyline(points: Position[], fraction: number): Position {
+export function getPointAlongPolyline(points: Position[], fraction: number): Position {
   if (points.length < 2) {
     return points[0] ?? { x: 0, y: 0 };
   }
@@ -91,6 +91,68 @@ function getPointAlongPolyline(points: Position[], fraction: number): Position {
   }
 
   return points[points.length - 1];
+}
+
+/**
+ * Project a point onto a polyline and return the fraction (0–1) of the total path
+ * length at the closest projected point. Used for draggable label positioning.
+ */
+export function getProjectionFractionOnPolyline(points: Position[], target: Position): number {
+  if (points.length < 2) {
+    return 0;
+  }
+
+  let totalLength = 0;
+  const segLengths: number[] = [];
+  for (let i = 0; i < points.length - 1; i++) {
+    const dx = points[i + 1].x - points[i].x;
+    const dy = points[i + 1].y - points[i].y;
+    segLengths.push(Math.sqrt(dx * dx + dy * dy));
+    totalLength += segLengths[i];
+  }
+
+  if (totalLength === 0) {
+    return 0;
+  }
+
+  // Find the closest point on any segment
+  let bestDist = Infinity;
+  let bestAccum = 0;
+  let accumulated = 0;
+
+  for (let i = 0; i < segLengths.length; i++) {
+    const ax = points[i].x;
+    const ay = points[i].y;
+    const bx = points[i + 1].x;
+    const by = points[i + 1].y;
+    const segLen = segLengths[i];
+
+    if (segLen === 0) {
+      const dist = Math.sqrt((target.x - ax) ** 2 + (target.y - ay) ** 2);
+      if (dist < bestDist) {
+        bestDist = dist;
+        bestAccum = accumulated;
+      }
+      continue;
+    }
+
+    // Project target onto the line segment [a, b], clamped to [0, 1]
+    let t = ((target.x - ax) * (bx - ax) + (target.y - ay) * (by - ay)) / (segLen * segLen);
+    t = Math.max(0, Math.min(1, t));
+
+    const px = ax + t * (bx - ax);
+    const py = ay + t * (by - ay);
+    const dist = Math.sqrt((target.x - px) ** 2 + (target.y - py) ** 2);
+
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestAccum = accumulated + t * segLen;
+    }
+
+    accumulated += segLen;
+  }
+
+  return bestAccum / totalLength;
 }
 
 export function getLinkLabelMetrics(labelText: string, fontSize: number): LinkLabelMetrics {

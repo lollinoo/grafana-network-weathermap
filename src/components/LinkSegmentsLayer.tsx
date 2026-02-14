@@ -51,7 +51,7 @@ export const LinkSegmentsLayer: React.FC<LinkSegmentsLayerProps> = ({
             {/* Render waypoint segments if present */}
             {d.segments && d.segments.length > 1 ? (
               <React.Fragment>
-                {/* A-side polyline: source → all waypoints → arrow center (smooth joins) */}
+                {/* A-side polyline: source → all waypoints → end (smooth joins) */}
                 <polyline
                   strokeWidth={d.stroke}
                   stroke={aSideColor}
@@ -61,7 +61,7 @@ export const LinkSegmentsLayer: React.FC<LinkSegmentsLayerProps> = ({
                   points={[
                     d.lineStartA,
                     ...d.segments.slice(1).map((seg) => seg.start),
-                    nodes[d.target.index].isConnection ? d.lineStartZ : d.arrowCenterA,
+                    d.lineEndA,
                   ]
                     .map((p) => `${p.x},${p.y}`)
                     .join(' ')}
@@ -75,22 +75,9 @@ export const LinkSegmentsLayer: React.FC<LinkSegmentsLayerProps> = ({
                   }}
                   style={isEditMode || safeADashboardLink ? { cursor: 'pointer' } : {}}
                 />
-                {/* Arrows and Z-side line at the target end */}
+                {/* Z-side line at the target end */}
                 {nodes[d.target.index].isConnection ? '' : (
                   <React.Fragment>
-                    <polygon
-                      points={`${d.arrowCenterA.x} ${d.arrowCenterA.y} ${d.arrowPolygonA.p1.x} ${d.arrowPolygonA.p1.y} ${d.arrowPolygonA.p2.x} ${d.arrowPolygonA.p2.y}`}
-                      fill={aSideColor}
-                      onMouseMove={(e) => onLinkHover(d, 'A', e)}
-                      onMouseOut={onLinkHoverLoss}
-                      onClick={(event) => {
-                        onLinkClick(d, 'A', event);
-                        if (!isEditMode && safeADashboardLink) {
-                          openSafeUrl(safeADashboardLink);
-                        }
-                      }}
-                      style={isEditMode || safeADashboardLink ? { cursor: 'pointer' } : {}}
-                    />
                     <line
                       strokeWidth={d.stroke}
                       stroke={zSideColor}
@@ -108,25 +95,12 @@ export const LinkSegmentsLayer: React.FC<LinkSegmentsLayerProps> = ({
                       }}
                       style={isEditMode || safeZDashboardLink ? { cursor: 'pointer' } : {}}
                     />
-                    <polygon
-                      points={`${d.arrowCenterZ.x} ${d.arrowCenterZ.y} ${d.arrowPolygonZ.p1.x} ${d.arrowPolygonZ.p1.y} ${d.arrowPolygonZ.p2.x} ${d.arrowPolygonZ.p2.y}`}
-                      fill={zSideColor}
-                      onMouseMove={(e) => onLinkHover(d, 'Z', e)}
-                      onMouseOut={onLinkHoverLoss}
-                      onClick={(event) => {
-                        onLinkClick(d, 'Z', event);
-                        if (!isEditMode && safeZDashboardLink) {
-                          openSafeUrl(safeZDashboardLink);
-                        }
-                      }}
-                      style={isEditMode || safeZDashboardLink ? { cursor: 'pointer' } : {}}
-                    />
                   </React.Fragment>
                 )}
               </React.Fragment>
             ) : (
               <React.Fragment>
-                {/* Original non-waypointed rendering */}
+                {/* Standard straight link */}
                 <line
                   strokeWidth={d.stroke}
                   stroke={aSideColor}
@@ -143,7 +117,7 @@ export const LinkSegmentsLayer: React.FC<LinkSegmentsLayerProps> = ({
                     }
                   }}
                   style={isEditMode || safeADashboardLink ? { cursor: 'pointer' } : {}}
-                ></line>
+                />
                 {nodes[d.source.index].isConnection ? (
                   <circle
                     cx={d.lineStartA.x}
@@ -159,28 +133,6 @@ export const LinkSegmentsLayer: React.FC<LinkSegmentsLayerProps> = ({
                   ''
                 ) : (
                   <React.Fragment>
-                    <polygon
-                      points={`
-                                    ${d.arrowCenterA.x}
-                                    ${d.arrowCenterA.y}
-                                    ${d.arrowPolygonA.p1.x}
-                                    ${d.arrowPolygonA.p1.y}
-                                    ${d.arrowPolygonA.p2.x}
-                                    ${d.arrowPolygonA.p2.y}
-                                `}
-                      fill={aSideColor}
-                      onMouseMove={(e) => {
-                        onLinkHover(d, 'A', e);
-                      }}
-                      onMouseOut={onLinkHoverLoss}
-                      onClick={(event) => {
-                        onLinkClick(d, 'A', event);
-                        if (!isEditMode && safeADashboardLink) {
-                          openSafeUrl(safeADashboardLink);
-                        }
-                      }}
-                      style={isEditMode || safeADashboardLink ? { cursor: 'pointer' } : {}}
-                    ></polygon>
                     <line
                       strokeWidth={d.stroke}
                       stroke={zSideColor}
@@ -199,29 +151,7 @@ export const LinkSegmentsLayer: React.FC<LinkSegmentsLayerProps> = ({
                         }
                       }}
                       style={isEditMode || safeZDashboardLink ? { cursor: 'pointer' } : {}}
-                    ></line>
-                    <polygon
-                      points={`
-                                    ${d.arrowCenterZ.x}
-                                    ${d.arrowCenterZ.y}
-                                    ${d.arrowPolygonZ.p1.x}
-                                    ${d.arrowPolygonZ.p1.y}
-                                    ${d.arrowPolygonZ.p2.x}
-                                    ${d.arrowPolygonZ.p2.y}
-                                `}
-                      fill={zSideColor}
-                      onMouseMove={(e) => {
-                        onLinkHover(d, 'Z', e);
-                      }}
-                      onMouseOut={onLinkHoverLoss}
-                      onClick={(event) => {
-                        onLinkClick(d, 'Z', event);
-                        if (!isEditMode && safeZDashboardLink) {
-                          openSafeUrl(safeZDashboardLink);
-                        }
-                      }}
-                      style={isEditMode || safeZDashboardLink ? { cursor: 'pointer' } : {}}
-                    ></polygon>
+                    />
                   </React.Fragment>
                 )}
               </React.Fragment>
@@ -229,6 +159,6 @@ export const LinkSegmentsLayer: React.FC<LinkSegmentsLayerProps> = ({
           </g>
         );
       })}
-    </g>
+    </g >
   );
 };
