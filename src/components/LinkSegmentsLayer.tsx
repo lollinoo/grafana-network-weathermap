@@ -11,6 +11,8 @@ interface LinkSegmentsLayerProps {
   onLinkHoverLoss: (event: any) => void;
   onLinkClick: (link: DrawnLink, side: 'A' | 'Z', event: React.MouseEvent<SVGElement>) => void;
   isEditMode: boolean;
+  selectedLinkId?: string;
+  selectionColor: string;
 }
 
 export const LinkSegmentsLayer: React.FC<LinkSegmentsLayerProps> = ({
@@ -21,6 +23,8 @@ export const LinkSegmentsLayer: React.FC<LinkSegmentsLayerProps> = ({
   onLinkHoverLoss,
   onLinkClick,
   isEditMode,
+  selectedLinkId,
+  selectionColor,
 }) => {
   return (
     <g>
@@ -30,6 +34,11 @@ export const LinkSegmentsLayer: React.FC<LinkSegmentsLayerProps> = ({
         }
         const safeADashboardLink = sanitizeExternalUrl(d.sides.A.dashboardLink, { allowRelative: true });
         const safeZDashboardLink = sanitizeExternalUrl(d.sides.Z.dashboardLink, { allowRelative: true });
+        const isEditorSelected = selectedLinkId === d.id;
+
+        const aSideColor = isEditorSelected ? selectionColor : getScaleColor(d.sides.A.currentValue, d.sides.A.bandwidth);
+        const zSideColor = isEditorSelected ? selectionColor : getScaleColor(d.sides.Z.currentValue, d.sides.Z.bandwidth);
+
         return (
           <g
             key={i}
@@ -41,7 +50,7 @@ export const LinkSegmentsLayer: React.FC<LinkSegmentsLayerProps> = ({
           >
             <line
               strokeWidth={d.stroke}
-              stroke={getScaleColor(d.sides.A.currentValue, d.sides.A.bandwidth)}
+              stroke={aSideColor}
               x1={d.lineStartA.x}
               y1={d.lineStartA.y}
               x2={d.lineEndA.x}
@@ -63,7 +72,7 @@ export const LinkSegmentsLayer: React.FC<LinkSegmentsLayerProps> = ({
                 cx={d.lineStartA.x}
                 cy={d.lineStartA.y}
                 r={upstreamLinks.length > 0 ? Math.max(d.stroke, upstreamLinks[0].stroke) / 2 : d.stroke / 2}
-                fill={getScaleColor(d.sides.A.currentValue, d.sides.A.bandwidth)}
+                fill={aSideColor}
                 style={{ paintOrder: 'stroke' }}
               ></circle>
             ) : (
@@ -82,7 +91,7 @@ export const LinkSegmentsLayer: React.FC<LinkSegmentsLayerProps> = ({
                                 ${d.arrowPolygonA.p2.x}
                                 ${d.arrowPolygonA.p2.y}
                             `}
-                  fill={getScaleColor(d.sides.A.currentValue, d.sides.A.bandwidth)}
+                  fill={aSideColor}
                   onMouseMove={(e) => {
                     onLinkHover(d, 'A', e);
                   }}
@@ -97,7 +106,7 @@ export const LinkSegmentsLayer: React.FC<LinkSegmentsLayerProps> = ({
                 ></polygon>
                 <line
                   strokeWidth={d.stroke}
-                  stroke={getScaleColor(d.sides.Z.currentValue, d.sides.Z.bandwidth)}
+                  stroke={zSideColor}
                   x1={d.lineStartZ.x}
                   y1={d.lineStartZ.y}
                   x2={d.lineEndZ.x}
@@ -123,7 +132,7 @@ export const LinkSegmentsLayer: React.FC<LinkSegmentsLayerProps> = ({
                                 ${d.arrowPolygonZ.p2.x}
                                 ${d.arrowPolygonZ.p2.y}
                             `}
-                  fill={getScaleColor(d.sides.Z.currentValue, d.sides.Z.bandwidth)}
+                  fill={zSideColor}
                   onMouseMove={(e) => {
                     onLinkHover(d, 'Z', e);
                   }}

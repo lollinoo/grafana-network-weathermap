@@ -29,6 +29,7 @@ export const LinkForm = (props: Props) => {
   const styles = getStyles();
 
   const [currentLink, setCurrentLink] = useState<Link | null>(null);
+  const [strokePanelOpenByLink, setStrokePanelOpenByLink] = useState<Record<string, boolean>>({});
 
   const updateEditorSelection = (linkId: string | undefined) => {
     const previousSelection = value.editorSelection ?? {};
@@ -63,6 +64,13 @@ export const LinkForm = (props: Props) => {
       setCurrentLink(null);
     }
   }, [currentLink, value.links]);
+
+  const setStrokePanelOpen = (linkId: string, isOpen: boolean) => {
+    setStrokePanelOpenByLink((previous) => ({
+      ...previous,
+      [linkId]: isOpen,
+    }));
+  };
 
   const findNodeIndex = (n1: Node): number => {
     let nodeIndex = -1;
@@ -199,6 +207,11 @@ export const LinkForm = (props: Props) => {
         selectedType: weathermap.editorSelection.selectedType === 'link' ? undefined : weathermap.editorSelection.selectedType,
       };
     }
+    setStrokePanelOpenByLink((previous) => {
+      const next = { ...previous };
+      delete next[toRemove.id];
+      return next;
+    });
     onChange(weathermap);
   };
 
@@ -219,6 +232,7 @@ export const LinkForm = (props: Props) => {
       selectedLinkId: undefined,
       selectedType: weathermap.editorSelection?.selectedType === 'link' ? undefined : weathermap.editorSelection?.selectedType,
     };
+    setStrokePanelOpenByLink({});
     props.onChange(weathermap);
   };
 
@@ -415,7 +429,11 @@ export const LinkForm = (props: Props) => {
                   }}
                 />
               </InlineField>
-              <ControlledCollapse label="Stroke and Arrow">
+              <ControlledCollapse
+                label="Stroke and Arrow"
+                isOpen={strokePanelOpenByLink[link.id] ?? false}
+                onToggle={(isOpen) => setStrokePanelOpen(link.id, isOpen)}
+              >
                 <InlineField grow label="Link Stroke Width" className={styles.inlineField}>
                   <Slider
                     min={1}

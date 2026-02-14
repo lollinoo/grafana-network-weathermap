@@ -596,6 +596,8 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
               onLinkHoverLoss={handleLinkHoverLoss}
               onLinkClick={handleLinkClick}
               isEditMode={isEditMode}
+              selectedLinkId={wm.editorSelection?.selectedType === 'link' ? wm.editorSelection.selectedLinkId : undefined}
+              selectionColor={theme.colors.primary.main}
             />
             <LinkLabelsLayer
               renderedLinkContexts={renderedLinkContexts}
@@ -610,6 +612,8 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
               onLinkHoverLoss={handleLinkHoverLoss}
               onLinkClick={handleLinkClick}
               isEditMode={isEditMode}
+              selectedLinkId={wm.editorSelection?.selectedType === 'link' ? wm.editorSelection.selectedLinkId : undefined}
+              selectionColor={theme.colors.primary.main}
             />
             <LinkLabelsLayer
               renderedLinkContexts={renderedLinkContexts}
@@ -624,11 +628,14 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
               onLinkHoverLoss={handleLinkHoverLoss}
               onLinkClick={handleLinkClick}
               isEditMode={isEditMode}
+              selectedLinkId={wm.editorSelection?.selectedType === 'link' ? wm.editorSelection.selectedLinkId : undefined}
+              selectionColor={theme.colors.primary.main}
             />
             <NodeLayer
               nodes={nodes}
               draggedNode={draggedNode}
               selectedNodes={selectedNodes}
+              selectedNodeId={wm.editorSelection?.selectedType === 'node' ? wm.editorSelection.selectedNodeId : undefined}
               weathermap={wm}
               isEditMode={isEditMode}
               data={data}

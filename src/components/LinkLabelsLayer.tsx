@@ -22,6 +22,8 @@ interface LinkLabelsLayerProps {
   onLinkHoverLoss: (event: any) => void;
   onLinkClick: (link: DrawnLink, side: 'A' | 'Z', event: React.MouseEvent<SVGGElement>) => void;
   isEditMode: boolean;
+  selectedLinkId?: string;
+  selectionColor: string;
 }
 
 export const LinkLabelsLayer: React.FC<LinkLabelsLayerProps> = ({
@@ -37,6 +39,8 @@ export const LinkLabelsLayer: React.FC<LinkLabelsLayerProps> = ({
   onLinkHoverLoss,
   onLinkClick,
   isEditMode,
+  selectedLinkId,
+  selectionColor,
 }) => {
   return (
     <g>
@@ -49,6 +53,7 @@ export const LinkLabelsLayer: React.FC<LinkLabelsLayerProps> = ({
         const text = `${currentSide.currentText}`;
         const transform = getLinkLabelTransform(d, side, nodes);
         const labelMetrics = getLinkLabelMetrics(text, fontSize);
+        const isEditorSelected = selectedLinkId === d.id;
 
         return (
           <g
@@ -68,8 +73,10 @@ export const LinkLabelsLayer: React.FC<LinkLabelsLayerProps> = ({
               width={labelMetrics.rectWidth}
               height={labelMetrics.rectHeight}
               fill={getSolidFromAlphaColor(backgroundColor, panelBackgroundColor)}
-              stroke={getSolidFromAlphaColor(borderColor, panelBackgroundColor)}
-              strokeWidth={2}
+              stroke={
+                isEditorSelected ? selectionColor : getSolidFromAlphaColor(borderColor, panelBackgroundColor)
+              }
+              strokeWidth={isEditorSelected ? 3 : 2}
               rx={labelMetrics.rectRadius}
             ></rect>
             <text x={0} y={labelMetrics.textY} textAnchor={'middle'} fontSize={`${fontSize}px`} fill={fontColor}>

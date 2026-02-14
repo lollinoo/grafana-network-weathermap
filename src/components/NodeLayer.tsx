@@ -6,6 +6,7 @@ interface NodeLayerProps {
   nodes: DrawnNode[];
   draggedNode: DrawnNode;
   selectedNodes: DrawnNode[];
+  selectedNodeId?: string;
   weathermap: Weathermap;
   isEditMode: boolean;
   data: any;
@@ -18,6 +19,7 @@ export const NodeLayer: React.FC<NodeLayerProps> = ({
   nodes,
   draggedNode,
   selectedNodes,
+  selectedNodeId,
   weathermap,
   isEditMode,
   data,
@@ -34,6 +36,7 @@ export const NodeLayer: React.FC<NodeLayerProps> = ({
             node: d,
             draggedNode,
             selectedNodes,
+            isEditorSelected: selectedNodeId === d.id,
             wm: weathermap,
             onDrag: (e, position) => {
               onNodeDrag(i, e, position);

@@ -18,6 +18,7 @@ interface NodeProps {
   node: DrawnNode;
   draggedNode: DrawnNode;
   selectedNodes: DrawnNode[];
+  isEditorSelected: boolean;
   wm: Weathermap;
   onDrag: DraggableEventHandler;
   onStop: DraggableEventHandler;
@@ -46,7 +47,7 @@ function calculateRectY(d: DrawnNode, wm: Weathermap) {
 }
 
 const MapNode: React.FC<NodeProps> = (props: NodeProps) => {
-  const { node, draggedNode, selectedNodes, wm, onDrag, onStop, onClick, disabled, data } = props;
+  const { node, draggedNode, selectedNodes, isEditorSelected, wm, onDrag, onStop, onClick, disabled, data } = props;
   const styles = getStyles();
 
   const rectX = useMemo(() => calculateRectX(node, wm), [node, wm]);
@@ -104,7 +105,7 @@ const MapNode: React.FC<NodeProps> = (props: NodeProps) => {
                   : getSolidFromAlphaColor(node.colors.background, wm.settings.panel.backgroundColor)
               }
               stroke={
-                nodeIsSelected
+                nodeIsSelected || isEditorSelected
                   ? getSolidFromAlphaColor(node.colors.font, wm.settings.panel.backgroundColor)
                   : node.isConnection
                   ? disabled
