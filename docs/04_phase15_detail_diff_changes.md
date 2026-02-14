@@ -6,6 +6,7 @@ This document tracks dependency remediation and upgrade-hardening activities for
 ## Batch 1
 - Date: `2026-02-11`
 - Status: completed
+- Commit: `26c39d5`
 - Goal: reduce runtime dependency surface without introducing behavior regressions.
 
 ### Files touched

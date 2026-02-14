@@ -124,7 +124,7 @@
 
 ## 2026-02-11 (Phase 1.5 remediation batch 1)
 
-### [working-tree] chore(deps): reduce runtime dependency surface
+### [26c39d5] chore(deps): reduce runtime dependency surface
 - Type: dependency hygiene / vulnerability remediation starter.
 - Scope: `package.json`, `package-lock.json`.
 - Changes:
