@@ -406,7 +406,6 @@ export function handleVersionedStateUpdates(wm: Weathermap, theme: GrafanaTheme2
   wm.nodes = wm.nodes.map((n) => merge(generateBasicNode('Node A', [200, 300], theme), n));
   wm.links = wm.links.map((l) => merge(generateBasicLink(), l));
   if (!(wm.scale instanceof Array)) {
-    console.log(wm.scale);
     // @ts-ignore
     wm.scale = Object.keys(wm.scale).map((key: number) => {
       return {
@@ -416,7 +415,6 @@ export function handleVersionedStateUpdates(wm: Weathermap, theme: GrafanaTheme2
     });
   }
   wm = merge(modelWeathermap, wm);
-  console.log('updated weathermap state version', wm);
   return wm;
 }
 
