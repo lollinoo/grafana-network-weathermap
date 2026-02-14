@@ -399,7 +399,8 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
     setHoveredLink(null as unknown as HoveredLink);
   };
 
-  const handleLinkClick = (link: DrawnLink, _side: 'A' | 'Z', _event: any) => {
+  const handleLinkClick = (link: DrawnLink, _side: 'A' | 'Z', e: any) => {
+    e.stopPropagation();
     selectEditorEntity('link', link.id);
   };
 
@@ -425,6 +426,7 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
   };
 
   const handleNodeClick = (nodeIndex: number, e: any) => {
+    e.stopPropagation();
     const safeNodeDashboardLink = sanitizeExternalUrl(nodes[nodeIndex].dashboardLink, {
       allowRelative: true,
     });
@@ -549,8 +551,8 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
             onOptionsChange({ weathermap: commitPanelOffset(wm, offset) });
           }}
           onClick={(e) => {
-            // Only clear if we are not dragging and it was a direct click on the SVG background
-            if (!isDragging && (e.target as HTMLElement).id?.startsWith('nw-')) {
+            // Only clear if we are not dragging
+            if (!isDragging) {
               if (isEditMode) {
                 const previous = wm.editorSelection;
                 if (previous?.selectedType) {
