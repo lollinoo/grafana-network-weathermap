@@ -1,6 +1,6 @@
 {
-  "name": "knightss-27-d-3-weathermap",
-  "version": "0.4.3",
+  "name": "weathermap-panel",
+  "version": "0.5.0",
   "description": "Network weathermap",
   "scripts": {
     "build": "webpack -c ./.config/webpack/webpack.config.ts --env production",
@@ -18,12 +18,12 @@
     "typecheck": "tsc --noEmit",
     "verify:ci": "npm run lint && npm run typecheck && npm run test:ci && npm run build"
   },
-  "repository": "github:knightss27/grafana-network-weathermap",
-  "author": "seth@seth.cx",
+  "repository": "github:lollinoo/grafana-network-weathermap",
+  "author": "",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/knightss27/grafana-network-weathermap/issues",
-    "email": "seth@seth.cx"
+    "url": "https://github.com/lollinoo/grafana-network-weathermap/issues",
+    "email": ""
   },
   "devDependencies": {
     "@babel/core": "^7.29.0",

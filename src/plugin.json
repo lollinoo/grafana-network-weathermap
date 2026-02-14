@@ -1,14 +1,18 @@
 {
   "type": "panel",
   "name": "Network Weathermap",
-  "id": "knightss27-weathermap-panel",
+  "id": "weathermap-panel",
   "info": {
     "description": "A simple & sleek network weathermap.",
     "author": {
       "name": "Seth Knights",
       "url": "https://seth.cx"
     },
-    "keywords": ["network weathermap", "network", "weathermap"],
+    "keywords": [
+      "network weathermap",
+      "network",
+      "weathermap"
+    ],
     "logos": {
       "small": "img/logo.svg",
       "large": "img/logo.svg"
@@ -28,10 +32,22 @@
       }
     ],
     "screenshots": [
-      { "name": "General Example 1", "path": "img/general-example.png" },
-      { "name": "General Example 2", "path": "img/example_00.png" },
-      { "name": "General Example 3", "path": "img/example_01.png" },
-      { "name": "General Example 4", "path": "img/example_02.png" }
+      {
+        "name": "General Example 1",
+        "path": "img/general-example.png"
+      },
+      {
+        "name": "General Example 2",
+        "path": "img/example_00.png"
+      },
+      {
+        "name": "General Example 3",
+        "path": "img/example_01.png"
+      },
+      {
+        "name": "General Example 4",
+        "path": "img/example_02.png"
+      }
     ],
     "version": "%VERSION%",
     "updated": "%TODAY%"

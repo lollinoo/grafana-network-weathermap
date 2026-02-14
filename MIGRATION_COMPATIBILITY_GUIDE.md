@@ -21,7 +21,7 @@ This guide summarizes runtime compatibility and migration notes for dashboards u
 1. Backup dashboards and plugin directory.
 2. Replace plugin files with new `dist/` contents.
 3. Keep plugin ID unchanged:
-   - `knightss27-weathermap-panel`
+   - `weathermap-panel`
 4. Restart Grafana.
 5. Open affected dashboards and verify panel rendering/editing.
 
@@ -63,7 +63,7 @@ If a previously configured dashboard link no longer opens, validate it against t
 - Plugin not visible:
   - verify plugin directory name and `plugin.json` ID.
 - Plugin blocked as unsigned in local environments:
-  - set `allow_loading_unsigned_plugins = knightss27-weathermap-panel`.
+  - set `allow_loading_unsigned_plugins = weathermap-panel`.
 - Rendering anomalies after upgrade:
   - clear browser cache and reload dashboard;
   - validate panel JSON does not include malformed URLs or invalid field references.

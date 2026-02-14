@@ -58,7 +58,7 @@ Allow loading the unsigned plugin (required for local testing):
 
 ```ini
 [plugins]
-allow_loading_unsigned_plugins = knweathermap-panel
+allow_loading_unsigned_plugins = weathermap-panel
 ```
 
 Or with Docker:

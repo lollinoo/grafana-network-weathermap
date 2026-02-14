@@ -9,7 +9,7 @@ services:
       - ~/grafana-plugins:/var/lib/grafana/plugins
     environment:
       - GF_APP_MODE=development
-      - GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=knightss27-weathermap-panel
+      - GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=weathermap-panel
   prometheus:
     image: prom/prometheus
     volumes:

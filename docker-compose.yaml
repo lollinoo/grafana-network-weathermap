@@ -1,6 +1,6 @@
 services:
   grafana:
-    container_name: 'knightss27-weathermap-panel'
+    container_name: 'weathermap-panel'
     build:
       context: ./.config
       args:
@@ -8,5 +8,5 @@ services:
     ports:
       - 3000:3000/tcp
     volumes:
-      - ./dist:/var/lib/grafana/plugins/knightss27-weathermap-panel
+      - ./dist:/var/lib/grafana/plugins/weathermap-panel
       - ./provisioning:/etc/grafana/provisioning

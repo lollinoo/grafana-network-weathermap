@@ -87,7 +87,10 @@
                     "horizontal": 10,
                     "vertical": 4
                   },
-                  "position": [0, 0],
+                  "position": [
+                    0,
+                    0
+                  ],
                   "useConstantSpacing": false
                 },
                 {
@@ -138,7 +141,10 @@
                     "horizontal": 10,
                     "vertical": 4
                   },
-                  "position": [220, 0],
+                  "position": [
+                    220,
+                    0
+                  ],
                   "useConstantSpacing": false
                 }
               ],
@@ -213,7 +219,10 @@
                 "horizontal": 10,
                 "vertical": 4
               },
-              "position": [0, 0],
+              "position": [
+                0,
+                0
+              ],
               "useConstantSpacing": false
             },
             {
@@ -264,7 +273,10 @@
                 "horizontal": 10,
                 "vertical": 4
               },
-              "position": [220, 0],
+              "position": [
+                220,
+                0
+              ],
               "useConstantSpacing": false
             }
           ],
@@ -332,7 +344,7 @@
         }
       ],
       "title": "Panel Title",
-      "type": "knightss27-weathermap-panel"
+      "type": "weathermap-panel"
     }
   ],
   "refresh": "",

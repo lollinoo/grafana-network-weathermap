@@ -37,7 +37,7 @@ This checklist is intended for maintainers preparing a production release of the
   - `README.md`
   - `CHANGELOG.md`
 - Confirm plugin ID is unchanged:
-  - `knightss27-weathermap-panel`
+  - `weathermap-panel`
 
 ## 5. Release metadata
 
