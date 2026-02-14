@@ -24,11 +24,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run tests
-        run: npm run test:ci
-
-      - name: Build plugin
-        run: npm run build
+      - name: Run CI verification
+        run: npm run verify:ci
 
       - name: Sign plugin
         if: ${{ secrets.GRAFANA_API_KEY != '' }}
