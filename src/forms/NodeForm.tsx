@@ -134,6 +134,10 @@ export const NodeForm = ({ value, onChange, context }: Props) => {
     const selectedNodeId =
       value.editorSelection?.selectedType === 'node' ? value.editorSelection.selectedNodeId : undefined;
     if (!selectedNodeId) {
+      // Clear the form when no node is selected (e.g. background click)
+      if (currentNode?.id && value.editorSelection?.selectedType === undefined) {
+        setCurrentNode(null);
+      }
       return;
     }
 

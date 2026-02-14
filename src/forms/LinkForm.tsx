@@ -49,6 +49,10 @@ export const LinkForm = (props: Props) => {
     const selectedLinkId =
       value.editorSelection?.selectedType === 'link' ? value.editorSelection.selectedLinkId : undefined;
     if (!selectedLinkId) {
+      // Clear the form when no link is selected (e.g. background click)
+      if (currentLink?.id && value.editorSelection?.selectedType === undefined) {
+        setCurrentLink(null);
+      }
       return;
     }
 
