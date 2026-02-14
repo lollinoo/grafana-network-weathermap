@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { DataFrame, Field, getTimeZone, PanelProps } from '@grafana/data';
+import { Field, getTimeZone, PanelProps } from '@grafana/data';
 import {
   Anchor,
   DrawnLink,
@@ -45,6 +45,7 @@ import {
 } from 'panel/linkMath';
 import { enrichHoveredLinkData } from 'panel/hoverLink';
 import { buildRenderLinkContext } from 'panel/renderLink';
+import { decorateTooltipFrames, filterFramesByQueries } from 'panel/tooltipFrames';
 
 // Calculate node position, width, etc.
 function generateDrawnNode(d: Node, i: number, wm: Weathermap): DrawnNode {
@@ -435,25 +436,31 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
     setHoveredLink(null as unknown as HoveredLink);
   };
 
-  const filteredGraphQueries = data.series.filter((frame) => {
-    if (!hoveredLink) {
-      return;
-    }
-
-    let displayName = null;
-    try {
-      displayName = getDataFrameName(frame, data.series);
-    } catch (e) {
-      console.warn('Network Weathermap: Error while attempting to access query data.', e);
-    }
-
-    return displayName === hoveredLink.link.sides.A.query || displayName === hoveredLink.link.sides.Z.query;
-  });
+  const filteredGraphQueries = hoveredLink
+    ? filterFramesByQueries(
+        data.series,
+        [hoveredLink.link.sides.A.query, hoveredLink.link.sides.Z.query],
+        getDataFrameName,
+        (error) => console.warn('Network Weathermap: Error while attempting to access query data.', error)
+      )
+    : [];
 
   if (wm) {
     const renderedLinkContexts = links.map((link) =>
       buildRenderLinkContext(link, links, tempNodes, (message) => console.warn(message))
     );
+
+    const tooltipGraphFrames = hoveredLink
+      ? decorateTooltipFrames(
+          filteredGraphQueries,
+          data.series,
+          hoveredLink.link.sides.Z.query,
+          wm.settings.tooltip.inboundColor,
+          wm.settings.tooltip.outboundColor,
+          getDataFrameName,
+          (error) => console.warn('Network Weathermap: Error while attempting to access query data.', error)
+        )
+      : [];
 
     const safeBackgroundImageUrl = sanitizeExternalUrl(wm.settings.panel.backgroundImage?.url, {
       allowRelative: true,
@@ -530,20 +537,7 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
                   height={100}
                   timeRange={timeRange}
                   timeZone={getTimeZone()}
-                  frames={filteredGraphQueries.map((frame: DataFrame) => {
-                    let copy = frame;
-                    let isInboundQuery = getDataFrameName(frame, data.series) === hoveredLink.link.sides.Z.query;
-                    copy.fields = copy.fields.map((v) => {
-                      v.config.custom = {
-                        fillOpacity: 10,
-                        lineColor: isInboundQuery
-                          ? wm.settings.tooltip.inboundColor
-                          : wm.settings.tooltip.outboundColor,
-                      };
-                      return v;
-                    });
-                    return copy;
-                  })}
+                  frames={tooltipGraphFrames}
                   legend={{
                     calcs: [],
                     displayMode: LegendDisplayMode.List,
