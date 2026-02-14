@@ -46,6 +46,7 @@ import {
 import { enrichHoveredLinkData } from 'panel/hoverLink';
 import { buildDrawnLinkSidesWithMetrics, collectSeriesValuesByFrameId, SeriesValueById } from 'panel/linkMetrics';
 import { applyNodeDrag, commitNodePositions, commitPanelOffset, toggleSelectedNode } from 'panel/nodeInteractions';
+import { getGridGuideRect, getPanelTranslateOffset, getZoomedPanelSize } from 'panel/panelCanvas';
 import { applyPanOffset, applyZoomDelta, getZoomFactor, shouldAllowZoom } from 'panel/panelViewport';
 import { buildRenderLinkContext } from 'panel/renderLink';
 import { decorateTooltipFrames, filterFramesByQueries } from 'panel/tooltipFrames';
@@ -336,6 +337,17 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
   const aspectMultiplier = Math.max(aspectX, aspectY);
 
   const [offset, setOffset] = useState(wm.settings.panel.offset);
+  const zoomedPanelSize = getZoomedPanelSize(wm.settings.panel.panelSize, wm.settings.panel.zoomScale);
+  const panelTranslateOffset = getPanelTranslateOffset(
+    wm.settings.panel.panelSize,
+    wm.settings.panel.zoomScale,
+    offset
+  );
+  const gridGuideRect = getGridGuideRect(
+    wm.nodes[0]?.position,
+    wm.settings.panel.panelSize,
+    wm.settings.panel.zoomScale
+  );
 
   const drag = (e: React.MouseEvent<SVGSVGElement, MouseEvent>) => {
     if (e.ctrlKey || e.buttons === 4 || e.shiftKey) {
@@ -571,9 +583,7 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
           height={height2}
           xmlns="http://www.w3.org/2000/svg"
           xmlnsXlink="http://www.w3.org/1999/xlink"
-          viewBox={`0 0 ${wm.settings.panel.panelSize.width * Math.pow(1.2, wm.settings.panel.zoomScale)} ${
-            wm.settings.panel.panelSize.height * Math.pow(1.2, wm.settings.panel.zoomScale)
-          }`}
+          viewBox={`0 0 ${zoomedPanelSize.width} ${zoomedPanelSize.height}`}
           shapeRendering="crispEdges"
           textRendering="geometricPrecision"
           fontFamily="sans-serif"
@@ -616,37 +626,14 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
           ) : (
             ''
           )}
-          <g
-            transform={`translate(${
-              (wm.settings.panel.panelSize.width * Math.pow(1.2, wm.settings.panel.zoomScale) -
-                wm.settings.panel.panelSize.width) /
-                2 +
-              offset.x
-            }, ${
-              (wm.settings.panel.panelSize.height * Math.pow(1.2, wm.settings.panel.zoomScale) -
-                wm.settings.panel.panelSize.height) /
-                2 +
-              offset.y
-            })`}
-            overflow="visible"
-          >
+          <g transform={`translate(${panelTranslateOffset.x}, ${panelTranslateOffset.y})`} overflow="visible">
             {wm.settings.panel.grid.guidesEnabled ? (
               <>
                 <rect
-                  x={
-                    wm.nodes.length > 0
-                      ? wm.nodes[0].position[0] -
-                        wm.settings.panel.panelSize.width * Math.pow(1.2, wm.settings.panel.zoomScale) * 2
-                      : 0
-                  }
-                  y={
-                    wm.nodes.length > 0
-                      ? wm.nodes[0].position[1] -
-                        wm.settings.panel.panelSize.height * Math.pow(1.2, wm.settings.panel.zoomScale) * 2
-                      : 0
-                  }
-                  width={wm.settings.panel.panelSize.width * Math.pow(1.2, wm.settings.panel.zoomScale) * 4}
-                  height={wm.settings.panel.panelSize.height * Math.pow(1.2, wm.settings.panel.zoomScale) * 4}
+                  x={gridGuideRect.x}
+                  y={gridGuideRect.y}
+                  width={gridGuideRect.width}
+                  height={gridGuideRect.height}
                   fill="url(#smallGrid)"
                 />
               </>
@@ -654,19 +641,7 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
               ''
             )}
           </g>
-          <g
-            transform={`translate(${
-              (wm.settings.panel.panelSize.width * Math.pow(1.2, wm.settings.panel.zoomScale) -
-                wm.settings.panel.panelSize.width) /
-                2 +
-              offset.x
-            }, ${
-              (wm.settings.panel.panelSize.height * Math.pow(1.2, wm.settings.panel.zoomScale) -
-                wm.settings.panel.panelSize.height) /
-                2 +
-              offset.y
-            })`}
-          >
+          <g transform={`translate(${panelTranslateOffset.x}, ${panelTranslateOffset.y})`}>
             <g>
               {renderedLinkContexts.map(({ link: d, upstreamLinks }, i) => {
                 if (d.nodes[0].id === d.nodes[1].id) {
