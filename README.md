@@ -51,3 +51,8 @@ docker run -d --name grafana \
   -v "$(pwd)/dist:/var/lib/grafana/plugins/knightss27-weathermap-panel" \
   grafana/grafana:latest
 ```
+
+## Maintenance docs
+
+- [Release Checklist](./RELEASE_CHECKLIST.md)
+- [Migration and Compatibility Guide](./MIGRATION_COMPATIBILITY_GUIDE.md)
