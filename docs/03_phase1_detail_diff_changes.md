@@ -211,3 +211,6 @@ jobs:
 ## Risk follow-up opened after Phase 1
 - User-reported current vulnerability count from local dependency scan: `45 vulnerabilities`.
 - Next planned remediation phase: `Phase 1.5` (dependency upgrade and vulnerability reduction).
+
+## Cross-reference
+- Phase 1.5 detailed diff log: `docs/04_phase15_detail_diff_changes.md`.

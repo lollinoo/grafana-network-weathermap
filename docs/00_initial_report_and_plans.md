@@ -137,6 +137,12 @@ Proposed deliverables:
 - controlled upgrade batches with per-batch validation (`verify:ci`, smoke test);
 - compatibility notes for breaking changes.
 
+Status update (2026-02-11, batch 1):
+- removed duplicated tool-only dependencies from runtime `dependencies` (`prettier`, `typescript`);
+- moved `postcss` to `devDependencies` to keep runtime dependency surface smaller;
+- refreshed lockfile and validated with `npm run verify:ci`.
+- this is the first reduction step; full vulnerability remediation still requires additional dependency upgrades.
+
 ### Phase 2 - Architectural refactor
 Objectives:
 - reduce complexity in the main panel;
@@ -169,7 +175,7 @@ Proposed deliverables:
 ## Current progress status
 - Phase 0: completed (`docs/01_phase0_detail_diff_changes.md`).
 - Phase 1: completed (`docs/03_phase1_detail_diff_changes.md`).
-- Phase 1.5: planned (priority next step due vulnerability backlog).
+- Phase 1.5: in progress (`docs/04_phase15_detail_diff_changes.md`).
 - Phases 2-4: planned, not executed yet.
 
 ## Operational notes

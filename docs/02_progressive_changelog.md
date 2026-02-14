@@ -122,12 +122,28 @@
 - Validation:
   - documentation update only (no code behavior change).
 
+## 2026-02-11 (Phase 1.5 remediation batch 1)
+
+### [working-tree] chore(deps): reduce runtime dependency surface
+- Type: dependency hygiene / vulnerability remediation starter.
+- Scope: `package.json`, `package-lock.json`.
+- Changes:
+  - removed duplicated tool-only packages from runtime deps (`prettier`, `typescript`);
+  - moved `postcss` from runtime deps to dev deps;
+  - refreshed lockfile with `npm install --package-lock-only`.
+- Impact:
+  - smaller runtime dependency surface;
+  - cleaner boundary between build-time and runtime packages.
+- Validation:
+  - `npm run verify:ci` OK.
+  - `npm audit` still blocked in sandbox (`EAI_AGAIN registry.npmjs.org`).
+
 ## Current branch status
 - Branch: `devs`
 - Latest recorded code commit: `9733e35`
 - Phase 0 status: completed.
 - Phase 1 status: completed (platform/CI modernization).
-- Phase 1.5 status: planned (dependency vulnerability remediation).
+- Phase 1.5 status: in progress (dependency vulnerability remediation).
 
 ## Template for future updates
 Copy/paste and fill for each new commit:

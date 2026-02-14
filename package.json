@@ -57,6 +57,7 @@
     "jest-canvas-mock": "^2.5.2",
     "jest-environment-jsdom": "^29.5.0",
     "make-coverage-badge": "^1.2.0",
+    "postcss": "^8.1.0",
     "prettier": "^2.8.7",
     "replace-in-file-webpack-plugin": "^1.0.6",
     "sass": "1.63.2",
@@ -79,13 +80,10 @@
     "@grafana/runtime": "9.5.3",
     "@grafana/ui": "9.5.3",
     "lodash.merge": "^4.6.2",
-    "postcss": "^8.1.0",
-    "prettier": "^2.5",
     "react": "17.0.2",
     "react-dom": "17.0.2",
     "react-draggable": "^4.4.3",
     "tslib": "2.5.3",
-    "typescript": "^4.1.3",
     "uuid": "^8.3.2"
   },
   "packageManager": "npm@9.6.6"
