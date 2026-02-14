@@ -1,6 +1,7 @@
 {
   "extends": "./.config/.eslintrc",
   "rules": {
-    "react-hooks/immutability": "off"
+    "react-hooks/immutability": "off",
+    "@stylistic/ts/type-annotation-spacing": "off"
   }
 }
