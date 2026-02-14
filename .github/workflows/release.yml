@@ -12,6 +12,8 @@ jobs:
   release:
     name: Release Plugin
     runs-on: ubuntu-latest
+    env:
+      GRAFANA_API_KEY: ${{ secrets.GRAFANA_API_KEY }}
     steps:
       - uses: actions/checkout@v4
 
@@ -28,10 +30,8 @@ jobs:
         run: npm run verify:ci
 
       - name: Sign plugin
-        if: ${{ secrets.GRAFANA_API_KEY != '' }}
+        if: ${{ env.GRAFANA_API_KEY != '' }}
         run: npm run sign
-        env:
-          GRAFANA_API_KEY: ${{ secrets.GRAFANA_API_KEY }}
 
       - name: Read plugin metadata
         id: metadata
