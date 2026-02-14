@@ -44,6 +44,7 @@ import {
   getPercentPoint,
 } from 'panel/linkMath';
 import { enrichHoveredLinkData } from 'panel/hoverLink';
+import { applyNodeDrag, commitNodePositions, commitPanelOffset, toggleSelectedNode } from 'panel/nodeInteractions';
 import { buildRenderLinkContext } from 'panel/renderLink';
 import { decorateTooltipFrames, filterFramesByQueries } from 'panel/tooltipFrames';
 
@@ -656,9 +657,7 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
           }}
           onMouseUp={() => {
             setDragging(false);
-            let panned = wm;
-            panned.settings.panel.offset = offset;
-            onOptionsChange({ weathermap: panned });
+            onOptionsChange({ weathermap: commitPanelOffset(wm, offset) });
           }}
           onDoubleClick={() => {
             setSelectedNodes([]);
@@ -971,51 +970,15 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
 
                       // Otherwise set our currently dragged node and manage scaling and grid settings.
                       setDraggedNode(d);
-                      setNodes((prevState) =>
-                        prevState.map((val, index) => {
-                          if (index === i || selectedNodes.find((n) => n.id === nodes[index].id)) {
-                            const scaledPos = getScaledMousePos({ x: position.deltaX, y: position.deltaY });
-                            val.x = Math.round(
-                              wm.settings.panel.grid.enabled
-                                ? wm.nodes[index].position[0] + (val.x + scaledPos.x - wm.nodes[index].position[0])
-                                : val.x + scaledPos.x
-                            );
-                            val.y = Math.round(
-                              wm.settings.panel.grid.enabled
-                                ? wm.nodes[index].position[1] + (val.y + scaledPos.y - wm.nodes[index].position[1])
-                                : val.y + scaledPos.y
-                            );
-                          }
-                          return val;
-                        })
-                      );
+                      const scaledPos = getScaledMousePos({ x: position.deltaX, y: position.deltaY });
+                      setNodes((prevState) => applyNodeDrag(prevState, selectedNodes, i, scaledPos));
                       tempNodes = nodes.slice();
                       setLinks(buildDrawnLinks(wm.links));
                     },
                     onStop: (e, position) => {
                       // setDraggedNode(null as unknown as DrawnNode);
                       setDraggedNode(null as unknown as DrawnNode);
-                      let current: Weathermap = wm;
-                      current.nodes[i].position = [
-                        wm.settings.panel.grid.enabled
-                          ? nearestMultiple(nodes[i].x, wm.settings.panel.grid.size)
-                          : nodes[i].x,
-                        wm.settings.panel.grid.enabled
-                          ? nearestMultiple(nodes[i].y, wm.settings.panel.grid.size)
-                          : nodes[i].y,
-                      ];
-
-                      for (let node of selectedNodes) {
-                        current.nodes[node.index].position = [
-                          wm.settings.panel.grid.enabled
-                            ? nearestMultiple(nodes[node.index].x, wm.settings.panel.grid.size)
-                            : nodes[node.index].x,
-                          wm.settings.panel.grid.enabled
-                            ? nearestMultiple(nodes[node.index].y, wm.settings.panel.grid.size)
-                            : nodes[node.index].y,
-                        ];
-                      }
-
+                      const current = commitNodePositions(wm, nodes, i, selectedNodes);
                       onOptionsChange({
                         ...options,
                         weathermap: current,
@@ -1026,15 +989,7 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
                         allowRelative: true,
                       });
                       if (e.ctrlKey && isEditMode) {
-                        setSelectedNodes((v) => {
-                          let cIndex = v.findIndex((n) => n.id === tempNodes[i].id);
-                          if (cIndex > -1) {
-                            v.splice(cIndex, 1);
-                          } else {
-                            v.push(tempNodes[i]);
-                          }
-                          return v;
-                        });
+                        setSelectedNodes((selected) => toggleSelectedNode(selected, tempNodes[i]));
                       } else if (!isEditMode && safeNodeDashboardLink) {
                         openSafeUrl(safeNodeDashboardLink);
                       }
