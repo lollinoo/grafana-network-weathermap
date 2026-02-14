@@ -28,13 +28,13 @@ import {
   sanitizeExternalUrl,
 } from 'utils';
 import MapNode from './components/MapNode';
+import { LinkLabelsLayer } from 'components/LinkLabelsLayer';
 import { LinkSegmentsLayer } from 'components/LinkSegmentsLayer';
 import ColorScale from 'components/ColorScale';
 import { LinkTooltip } from 'components/LinkTooltip';
 import { getArrowPolygon, getLinkValueFormatter, getMiddlePoint } from 'panel/linkMath';
 import { enrichHoveredLinkData } from 'panel/hoverLink';
 import { buildDrawnLinkSidesWithMetrics, collectSeriesValuesByFrameId, SeriesValueById } from 'panel/linkMetrics';
-import { getLinkLabelMetrics, getLinkLabelTransform, shouldRenderLinkLabel } from 'panel/linkLabelLayout';
 import { applyNodeDrag, commitNodePositions, commitPanelOffset, toggleSelectedNode } from 'panel/nodeInteractions';
 import { getGridGuideRect, getPanelTranslateOffset, getZoomedPanelSize } from 'panel/panelCanvas';
 import { applyPanOffset, applyZoomDelta, getZoomFactor, shouldAllowZoom } from 'panel/panelViewport';
@@ -515,94 +515,30 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
               onLinkHover={handleLinkHover}
               onLinkHoverLoss={handleLinkHoverLoss}
             />
-            <g>
-              {renderedLinkContexts.map(({ link: d }, i) => {
-                if (!shouldRenderLinkLabel(d, 'A', nodes)) {
-                  return;
-                }
-                const text = `${d.sides.A.currentText}`;
-                const transform = getLinkLabelTransform(d, 'A', nodes);
-                const labelMetrics = getLinkLabelMetrics(text, wm.settings.fontSizing.link);
-                return (
-                  <g
-                    fontStyle={'italic'}
-                    transform={`translate(${transform.x},${transform.y})`}
-                    onMouseMove={(e) => {
-                      handleLinkHover(d, 'A', e);
-                    }}
-                    onMouseOut={handleLinkHoverLoss}
-                    key={i}
-                  >
-                    <rect
-                      x={labelMetrics.rectX}
-                      y={-wm.settings.fontSizing.link}
-                      width={labelMetrics.rectWidth}
-                      height={labelMetrics.rectHeight}
-                      fill={getSolidFromAlphaColor(
-                        wm.settings.link.label.background,
-                        wm.settings.panel.backgroundColor
-                      )}
-                      stroke={getSolidFromAlphaColor(wm.settings.link.label.border, wm.settings.panel.backgroundColor)}
-                      strokeWidth={2}
-                      rx={labelMetrics.rectRadius}
-                    ></rect>
-                    <text
-                      x={0}
-                      y={labelMetrics.textY}
-                      textAnchor={'middle'}
-                      fontSize={`${wm.settings.fontSizing.link}px`}
-                      fill={wm.settings.link.label.font}
-                    >
-                      {text}
-                    </text>
-                  </g>
-                );
-              })}
-            </g>
-            <g>
-              {renderedLinkContexts.map(({ link: d }, i) => {
-                if (!shouldRenderLinkLabel(d, 'Z', nodes)) {
-                  return;
-                }
-                const text = `${d.sides.Z.currentText}`;
-                const transform = getLinkLabelTransform(d, 'Z', nodes);
-                const labelMetrics = getLinkLabelMetrics(text, wm.settings.fontSizing.link);
-                return (
-                  <g
-                    fontStyle={'italic'}
-                    transform={`translate(${transform.x},${transform.y})`}
-                    onMouseMove={(e) => {
-                      handleLinkHover(d, 'Z', e);
-                    }}
-                    onMouseOut={handleLinkHoverLoss}
-                    key={i}
-                  >
-                    <rect
-                      x={labelMetrics.rectX}
-                      y={-wm.settings.fontSizing.link}
-                      width={labelMetrics.rectWidth}
-                      height={labelMetrics.rectHeight}
-                      fill={getSolidFromAlphaColor(
-                        wm.settings.link.label.background,
-                        wm.settings.panel.backgroundColor
-                      )}
-                      stroke={getSolidFromAlphaColor(wm.settings.link.label.border, wm.settings.panel.backgroundColor)}
-                      strokeWidth={2}
-                      rx={labelMetrics.rectRadius}
-                    ></rect>
-                    <text
-                      x={0}
-                      y={labelMetrics.textY}
-                      textAnchor={'middle'}
-                      fontSize={`${wm.settings.fontSizing.link}px`}
-                      fill={wm.settings.link.label.font}
-                    >
-                      {text}
-                    </text>
-                  </g>
-                );
-              })}
-            </g>
+            <LinkLabelsLayer
+              renderedLinkContexts={renderedLinkContexts}
+              nodes={nodes}
+              side="A"
+              fontSize={wm.settings.fontSizing.link}
+              backgroundColor={wm.settings.link.label.background}
+              borderColor={wm.settings.link.label.border}
+              fontColor={wm.settings.link.label.font}
+              panelBackgroundColor={wm.settings.panel.backgroundColor}
+              onLinkHover={handleLinkHover}
+              onLinkHoverLoss={handleLinkHoverLoss}
+            />
+            <LinkLabelsLayer
+              renderedLinkContexts={renderedLinkContexts}
+              nodes={nodes}
+              side="Z"
+              fontSize={wm.settings.fontSizing.link}
+              backgroundColor={wm.settings.link.label.background}
+              borderColor={wm.settings.link.label.border}
+              fontColor={wm.settings.link.label.font}
+              panelBackgroundColor={wm.settings.panel.backgroundColor}
+              onLinkHover={handleLinkHover}
+              onLinkHoverLoss={handleLinkHoverLoss}
+            />
             <g>
               {nodes.map((d, i) => (
                 <MapNode
