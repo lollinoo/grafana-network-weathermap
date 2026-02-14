@@ -1,0 +1,58 @@
+name: Grafana Smoke
+
+on:
+  push:
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.nvmrc'
+      - '.github/workflows/grafana-smoke.yml'
+  pull_request:
+
+jobs:
+  smoke:
+    name: Build and boot on latest Grafana
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build plugin
+        run: npm run build
+
+      - name: Start Grafana latest with plugin
+        run: |
+          docker run -d --name grafana-smoke \
+            -p 3300:3000 \
+            -e GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=knightss27-weathermap-panel \
+            -v "$PWD/dist:/var/lib/grafana/plugins/knightss27-weathermap-panel" \
+            grafana/grafana:latest
+
+      - name: Wait for Grafana readiness
+        run: |
+          for i in $(seq 1 60); do
+            if curl -sf http://127.0.0.1:3300/api/health >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Grafana did not become ready in time"
+          docker logs grafana-smoke || true
+          exit 1
+
+      - name: Verify plugin is loaded
+        run: |
+          curl -sf -u admin:admin http://127.0.0.1:3300/api/plugins \
+            | jq -e '.[] | select(.id=="knightss27-weathermap-panel")' >/dev/null
+
+      - name: Stop container
+        if: always()
+        run: docker rm -f grafana-smoke || true
