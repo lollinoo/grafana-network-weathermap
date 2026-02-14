@@ -51,6 +51,11 @@ test('sanitizeExternalUrl only allows safe schemes', () => {
   expect(sanitizeExternalUrl('https://example.com/path?q=1')).toBe('https://example.com/path?q=1');
   expect(sanitizeExternalUrl('/d/network-overview')).toBe('/d/network-overview');
   expect(sanitizeExternalUrl('javascript:alert(1)')).toBeUndefined();
+  expect(sanitizeExternalUrl('//evil.example.com')).toBeUndefined();
+  expect(sanitizeExternalUrl('\\\\evil.example.com')).toBeUndefined();
+  expect(sanitizeExternalUrl('http:\\\\evil.example.com')).toBeUndefined();
+  expect(sanitizeExternalUrl('http:\n//evil.example.com')).toBeUndefined();
+  expect(sanitizeExternalUrl('\u0000https://example.com')).toBeUndefined();
   expect(sanitizeExternalUrl('data:text/html;base64,SGVsbG8=')).toBeUndefined();
   expect(sanitizeExternalUrl('data:image/svg+xml;base64,SGVsbG8=', { allowDataImage: true })).toBe(
     'data:image/svg+xml;base64,SGVsbG8='
@@ -61,6 +66,9 @@ test('openSafeUrl only opens sanitized urls', () => {
   const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
 
   openSafeUrl('javascript:alert(1)');
+  expect(openSpy).not.toHaveBeenCalled();
+
+  openSafeUrl('//evil.example.com');
   expect(openSpy).not.toHaveBeenCalled();
 
   openSafeUrl('https://example.com/network');

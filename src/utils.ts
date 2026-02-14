@@ -7,6 +7,7 @@ export const CURRENT_VERSION = 14;
 
 let colorsCalculatedCache: { [colors: string]: string } = {};
 const URL_SCHEME_REGEX = /^[a-zA-Z][a-zA-Z\d+.-]*:/;
+const URL_CONTROL_CHARS_REGEX = /[\u0000-\u001F\u007F]/;
 
 interface SanitizeExternalUrlOptions {
   allowRelative?: boolean;
@@ -30,6 +31,11 @@ export function sanitizeExternalUrl(
     return undefined;
   }
 
+  // Reject URLs that rely on parser normalization of control chars or backslashes.
+  if (URL_CONTROL_CHARS_REGEX.test(trimmed) || trimmed.includes('\\')) {
+    return undefined;
+  }
+
   const allowRelative = options.allowRelative ?? true;
   const allowDataImage = options.allowDataImage ?? false;
   const lowerValue = trimmed.toLowerCase();
@@ -39,6 +45,10 @@ export function sanitizeExternalUrl(
   }
 
   if (!URL_SCHEME_REGEX.test(trimmed)) {
+    // Disallow protocol-relative URLs when relative links are enabled.
+    if (trimmed.startsWith('//')) {
+      return undefined;
+    }
     return allowRelative ? trimmed : undefined;
   }
 
