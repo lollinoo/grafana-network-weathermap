@@ -16,7 +16,7 @@ import { PanelData } from '@grafana/data';
 
 interface NodeProps {
   node: DrawnNode;
-  draggedNode: DrawnNode;
+  draggedNode?: DrawnNode;
   selectedNodes: DrawnNode[];
   isEditorSelected: boolean;
   wm: Weathermap;
@@ -47,7 +47,7 @@ function calculateRectY(d: DrawnNode, wm: Weathermap) {
 }
 
 const MapNode: React.FC<NodeProps> = (props: NodeProps) => {
-  const { node, draggedNode, selectedNodes, isEditorSelected, wm, onDrag, onStop, onClick, disabled, data } = props;
+  const { node, selectedNodes, isEditorSelected, wm, onDrag, onStop, onClick, disabled, data } = props;
   const styles = getStyles();
 
   const rectX = useMemo(() => calculateRectX(node, wm), [node, wm]);
@@ -77,20 +77,16 @@ const MapNode: React.FC<NodeProps> = (props: NodeProps) => {
         cursor={disabled ? (safeNodeDashboardLink ? 'pointer' : '') : 'move'}
         display={node.label !== undefined ? 'inline' : 'none'}
         onClick={onClick}
-        transform={`translate(${
-          wm.settings.panel.grid.enabled &&
-          draggedNode &&
-          (draggedNode.index === node.index || selectedNodes.find((n) => n.index === node.index))
-            ? nearestMultiple(node.x, wm.settings.panel.grid.size)
-            : node.x
-        },
-                    ${
-                      wm.settings.panel.grid.enabled &&
-                      draggedNode &&
-                      (draggedNode.index === node.index || selectedNodes.find((n) => n.index === node.index))
-                        ? nearestMultiple(node.y, wm.settings.panel.grid.size)
-                        : node.y
-                    })`}
+        transform={`translate(${wm.settings.panel.grid.enabled &&
+          (selectedNodes.find((n) => n.index === node.index))
+          ? nearestMultiple(node.x, wm.settings.panel.grid.size)
+          : node.x
+          },
+                    ${wm.settings.panel.grid.enabled &&
+            (selectedNodes.find((n) => n.index === node.index))
+            ? nearestMultiple(node.y, wm.settings.panel.grid.size)
+            : node.y
+          })`}
       >
         {node.label !== '' || node.nodeIcon?.drawInside ? (
           <React.Fragment>
@@ -108,10 +104,10 @@ const MapNode: React.FC<NodeProps> = (props: NodeProps) => {
                 nodeIsSelected || isEditorSelected
                   ? getSolidFromAlphaColor(node.colors.font, wm.settings.panel.backgroundColor)
                   : node.isConnection
-                  ? disabled
-                    ? 'transparent'
-                    : getSolidFromAlphaColor(node.colors.background, wm.settings.panel.backgroundColor)
-                  : getSolidFromAlphaColor(
+                    ? disabled
+                      ? 'transparent'
+                      : getSolidFromAlphaColor(node.colors.background, wm.settings.panel.backgroundColor)
+                    : getSolidFromAlphaColor(
                       nodeIsDown ? node.colors.statusDown : node.colors.border,
                       wm.settings.panel.backgroundColor
                     )
@@ -144,14 +140,14 @@ const MapNode: React.FC<NodeProps> = (props: NodeProps) => {
               node.nodeIcon.drawInside
                 ? node.label!.length > 0
                   ? -(
-                      node.nodeIcon.size.height +
-                      node.nodeIcon.padding.vertical +
-                      measureText(node.label!, wm.settings.fontSizing.node).actualBoundingBoxAscent
-                    ) / 2
+                    node.nodeIcon.size.height +
+                    node.nodeIcon.padding.vertical +
+                    measureText(node.label!, wm.settings.fontSizing.node).actualBoundingBoxAscent
+                  ) / 2
                   : -node.nodeIcon.size.height / 2
                 : node.label!.length > 0
-                ? textY - node.nodeIcon.size.height - rectHeight / 2 - 1 - node.nodeIcon.padding.vertical
-                : -node.nodeIcon.size.height / 2
+                  ? textY - node.nodeIcon.size.height - rectHeight / 2 - 1 - node.nodeIcon.padding.vertical
+                  : -node.nodeIcon.size.height / 2
             }
             width={node.nodeIcon.size.width}
             height={node.nodeIcon.size.height}

@@ -4,7 +4,7 @@ import MapNode from './MapNode';
 
 interface NodeLayerProps {
   nodes: DrawnNode[];
-  draggedNode: DrawnNode;
+  draggedNode?: DrawnNode;
   selectedNodes: DrawnNode[];
   selectedNodeId?: string;
   weathermap: Weathermap;

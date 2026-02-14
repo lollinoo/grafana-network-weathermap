@@ -74,7 +74,6 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
   // Check for editing-related feature set
   const isEditMode = window.location.search.includes('editPanel');
 
-  const [draggedNode, setDraggedNode] = useState(null as unknown as DrawnNode);
   const [selectedNodes, setSelectedNodes] = useState([] as DrawnNode[]);
 
   function getScaleColor(current: number, max: number) {
@@ -128,14 +127,12 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
     // Set x and y to the rounded value if we are using the grid
     x =
       wm.settings.panel.grid.enabled &&
-        draggedNode &&
-        (draggedNode.index === d.index || selectedNodes.find((n) => n.index === d.index))
+        (selectedNodes.find((n) => n.index === d.index))
         ? nearestMultiple(d.x, wm.settings.panel.grid.size)
         : x;
     y =
       wm.settings.panel.grid.enabled &&
-        draggedNode &&
-        (draggedNode.index === d.index || selectedNodes.find((n) => n.index === d.index))
+        (selectedNodes.find((n) => n.index === d.index))
         ? nearestMultiple(d.y, wm.settings.panel.grid.size)
         : y;
 
@@ -320,7 +317,15 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
     });
   };
 
-  const [isDragging, setDragging] = useState(false);
+  /* 
+   * Drag state handling
+   * We use a ref instead of state to avoid re-render race conditions that were causing
+   * the onClick handler to believe we were still dragging after mouseUp.
+   */
+  const dragRef = useRef({ isMouseDown: false, hasMoved: false });
+
+  // Remove the old isDragging state
+  // const [isDragging, setDragging] = useState(false);
 
   const aspectX = wm.settings.panel.panelSize.width / width2;
   const aspectY = wm.settings.panel.panelSize.height / height2;
@@ -411,13 +416,11 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
     }
 
     // Otherwise set our currently dragged node and manage scaling and grid settings.
-    setDraggedNode(nodes[nodeIndex]);
     const scaledPos = getScaledMousePos({ x: position.deltaX, y: position.deltaY });
     setNodes((prevState) => applyNodeDrag(prevState, selectedNodes, nodeIndex, scaledPos));
   };
 
   const handleNodeStop = (nodeIndex: number) => {
-    setDraggedNode(null as unknown as DrawnNode);
     const current = commitNodePositions(wm, nodes, nodeIndex, selectedNodes);
     onOptionsChange({
       ...options,
@@ -539,20 +542,27 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
           onWheel={zoom}
           onMouseDown={(e) => {
             e.preventDefault();
-            setDragging(true);
+            dragRef.current.isMouseDown = true;
+            dragRef.current.hasMoved = false;
           }}
           onMouseMove={(e) => {
-            if (isDragging && (e.ctrlKey || e.buttons === 4 || e.shiftKey)) {
-              drag(e);
+            if (dragRef.current.isMouseDown) {
+              dragRef.current.hasMoved = true;
+              if (e.ctrlKey || e.buttons === 4 || e.shiftKey) {
+                drag(e);
+              }
             }
           }}
           onMouseUp={() => {
-            setDragging(false);
-            onOptionsChange({ weathermap: commitPanelOffset(wm, offset) });
+            dragRef.current.isMouseDown = false;
+            // Only commit offset if we moved
+            if (dragRef.current.hasMoved) {
+              onOptionsChange({ weathermap: commitPanelOffset(wm, offset) });
+            }
           }}
           onClick={(e) => {
-            // Only clear if we are not dragging
-            if (!isDragging) {
+            // Only clear selection if we didn't drag
+            if (!dragRef.current.hasMoved) {
               if (isEditMode) {
                 const previous = wm.editorSelection;
                 if (previous?.selectedType) {
@@ -657,7 +667,7 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
             />
             <NodeLayer
               nodes={nodes}
-              draggedNode={draggedNode}
+              draggedNode={null as unknown as DrawnNode}
               selectedNodes={selectedNodes}
               selectedNodeId={wm.editorSelection?.selectedType === 'node' ? wm.editorSelection.selectedNodeId : undefined}
               weathermap={wm}
