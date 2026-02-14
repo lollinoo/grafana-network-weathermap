@@ -43,6 +43,7 @@ import {
   getMiddlePoint,
   getPercentPoint,
 } from 'panel/linkMath';
+import { enrichHoveredLinkData } from 'panel/hoverLink';
 
 // Calculate node position, width, etc.
 function generateDrawnNode(d: Node, i: number, wm: Weathermap): DrawnNode {
@@ -422,57 +423,8 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
       return;
     }
 
-    if (tempNodes[d.source.index].isConnection) {
-      // If this link is coming from a connection, we want
-      // to take the link to that connection's data
-
-      // Find the link with that data
-      let prevLinks = links.filter((l) => l.target.id === d.source.id);
-
-      // Find previous links
-      while (prevLinks.length === 1 && tempNodes[prevLinks[0].source.index].isConnection) {
-        prevLinks = links.filter((l) => l.target.id === prevLinks[0].source.id);
-      }
-
-      // Check there is only one connection (otherwise this doesn't work)
-      if (prevLinks.length === 1) {
-        for (let key in prevLinks[0].sides.A) {
-          if (key !== 'labelOffset' && key !== 'anchor') {
-            // @ts-ignore
-            d.sides.A[key] = prevLinks[0].sides.A[key];
-          }
-        }
-      } else {
-        console.warn(`Connection node "${d.source.label}" missing input connection.`);
-      }
-    }
-
-    if (tempNodes[d.target.index].isConnection) {
-      // If this link is going to a connection, we want
-      // to get the forward data as well.
-
-      // Find the link with that data
-      let forwardLinks = links.filter((l) => l.source.id === d.target.id);
-
-      // Find forward links
-      while (forwardLinks.length === 1 && tempNodes[forwardLinks[0].target.index].isConnection) {
-        forwardLinks = links.filter((l) => l.source.id === forwardLinks[0].target.id);
-      }
-
-      // Check there is only one connection (otherwise this doesn't work)
-      if (forwardLinks.length === 1) {
-        for (let key in forwardLinks[0].sides.Z) {
-          if (key !== 'labelOffset' && key !== 'anchor') {
-            // @ts-ignore
-            d.sides.Z[key] = forwardLinks[0].sides.Z[key];
-          }
-        }
-      } else {
-        console.warn(`Connection node "${d.target.label}" missing output connection.`);
-      }
-    }
-
-    setHoveredLink({ link: d, side, mouseEvent: e });
+    const enrichedLink = enrichHoveredLinkData(d, links, tempNodes, (message) => console.warn(message));
+    setHoveredLink({ link: enrichedLink, side, mouseEvent: e });
   };
 
   const handleLinkHoverLoss = (e: any) => {
