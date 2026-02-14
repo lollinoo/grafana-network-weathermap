@@ -214,6 +214,17 @@ export interface Weathermap {
     selectedLinkId?: string;
   };
   persistentSectionState?: Record<string, boolean>;
+  nodeTemplates?: NodeTemplate[];
+}
+
+export interface NodeTemplate {
+  name: string;
+  nodeIcon?: Icon | null;
+  padding?: {
+    horizontal: number;
+    vertical: number;
+  };
+  colors?: Node['colors'];
 }
 
 export interface SimpleOptions {

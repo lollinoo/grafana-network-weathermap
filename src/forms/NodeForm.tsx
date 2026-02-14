@@ -16,7 +16,7 @@ import {
 } from '@grafana/ui';
 import { SelectableValue, StandardEditorProps } from '@grafana/data';
 import { v4 as uuidv4 } from 'uuid';
-import { Weathermap, Node } from 'types';
+import { Weathermap, Node, NodeTemplate } from 'types';
 import { CiscoIcons, NetworkingIcons, DatabaseIcons, ComputerIcons } from './iconOptions';
 import { getDataFrameName } from 'utils';
 
@@ -32,6 +32,7 @@ interface NodeCollapseState {
   status: boolean;
   advanced: boolean;
   colors: boolean;
+  templates: boolean;
 }
 
 
@@ -40,6 +41,66 @@ export const NodeForm = ({ value, onChange, context }: Props) => {
   const styles = getStyles();
   const theme = useTheme2();
   const [currentNode, setCurrentNode] = useState<Node | null>(null);
+  const [newTemplateName, setNewTemplateName] = useState('');
+
+  const saveTemplate = () => {
+    if (!currentNode || !newTemplateName.trim()) {
+      return;
+    }
+
+    const template: NodeTemplate = {
+      name: newTemplateName.trim(),
+      nodeIcon: currentNode.nodeIcon ? JSON.parse(JSON.stringify(currentNode.nodeIcon)) : undefined,
+      padding: currentNode.padding ? { ...currentNode.padding } : undefined,
+      colors: currentNode.colors ? { ...currentNode.colors } : undefined,
+    };
+
+    let weathermap: Weathermap = value;
+    const templates = weathermap.nodeTemplates ? [...weathermap.nodeTemplates] : [];
+
+    // Check if template with same name exists, update it if so, otherwise push new
+    const existingIndex = templates.findIndex(t => t.name === template.name);
+    if (existingIndex >= 0) {
+      templates[existingIndex] = template;
+    } else {
+      templates.push(template);
+    }
+
+    weathermap.nodeTemplates = templates;
+    onChange(weathermap);
+    setNewTemplateName('');
+  };
+
+  const applyTemplate = (template: NodeTemplate) => {
+    if (!currentNode) {
+      return;
+    }
+    let weathermap: Weathermap = value;
+    // Find index of current node in weathermap.nodes
+    const nodeIndex = weathermap.nodes.findIndex(n => n.id === currentNode.id);
+    if (nodeIndex === -1) {
+      return;
+    }
+
+    if (template.nodeIcon) {
+      weathermap.nodes[nodeIndex].nodeIcon = JSON.parse(JSON.stringify(template.nodeIcon));
+    }
+    if (template.padding) {
+      weathermap.nodes[nodeIndex].padding = { ...template.padding };
+    }
+    if (template.colors) {
+      weathermap.nodes[nodeIndex].colors = { ...template.colors };
+    }
+    onChange(weathermap);
+  };
+
+  const deleteTemplate = (name: string) => {
+    let weathermap: Weathermap = value;
+    if (weathermap.nodeTemplates) {
+      weathermap.nodeTemplates = weathermap.nodeTemplates.filter(t => t.name !== name);
+      onChange(weathermap);
+    }
+  };
 
   const updateEditorSelection = (nodeId: string | undefined) => {
     const previousSelection = value.editorSelection ?? {};
@@ -594,6 +655,46 @@ export const NodeForm = ({ value, onChange, context }: Props) => {
                   >
                     Apply to All?
                   </Button>
+                </ControlledCollapse>
+              </InlineFieldRow>
+              <InlineFieldRow className={styles.inlineRow}>
+                <ControlledCollapse
+                  label="Templates"
+                  isOpen={getCollapseState('templates')}
+                  onToggle={(isOpen) => setCollapseState('templates', isOpen)}
+                >
+                  <InlineFieldRow className={styles.inlineRow}>
+                    <InlineField grow label={'New Template Name'} className={styles.inlineField}>
+                      <Input
+                        value={newTemplateName}
+                        onChange={(e) => setNewTemplateName(e.currentTarget.value)}
+                        placeholder={'Template Name'}
+                        type={'text'}
+                      />
+                    </InlineField>
+                    <Button variant="primary" size="md" onClick={saveTemplate} disabled={!newTemplateName.trim()}>
+                      Save as Template
+                    </Button>
+                  </InlineFieldRow>
+
+                  {value.nodeTemplates && value.nodeTemplates.length > 0 && (
+                    <div style={{ marginTop: '10px' }}>
+                      <InlineLabel width="auto">Saved Templates</InlineLabel>
+                      {value.nodeTemplates.map((template, idx) => (
+                        <InlineFieldRow key={idx} className={styles.inlineRow} style={{ alignItems: 'center', marginBottom: '5px' }}>
+                          <span style={{ marginRight: '10px', fontWeight: 500, minWidth: '100px' }}>{template.name}</span>
+                          <div style={{ display: 'flex', gap: '5px' }}>
+                            <Button variant="secondary" size="sm" icon="copy" onClick={() => applyTemplate(template)}>
+                              Apply
+                            </Button>
+                            <Button variant="destructive" size="sm" icon="trash-alt" onClick={() => deleteTemplate(template.name)}>
+                              Delete
+                            </Button>
+                          </div>
+                        </InlineFieldRow>
+                      ))}
+                    </div>
+                  )}
                 </ControlledCollapse>
               </InlineFieldRow>
               <InlineFieldRow className={styles.inlineRow}>
