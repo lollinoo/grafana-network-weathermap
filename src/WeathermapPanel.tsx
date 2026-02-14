@@ -46,6 +46,7 @@ import {
 import { enrichHoveredLinkData } from 'panel/hoverLink';
 import { buildDrawnLinkSidesWithMetrics, collectSeriesValuesByFrameId } from 'panel/linkMetrics';
 import { applyNodeDrag, commitNodePositions, commitPanelOffset, toggleSelectedNode } from 'panel/nodeInteractions';
+import { applyPanOffset, applyZoomDelta, getZoomFactor, shouldAllowZoom } from 'panel/panelViewport';
 import { buildRenderLinkContext } from 'panel/renderLink';
 import { decorateTooltipFrames, filterFramesByQueries } from 'panel/tooltipFrames';
 
@@ -112,7 +113,7 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
 
   // Calculate aspect-ratio corrected drag positions
   function getScaledMousePos(pos: { x: number; y: number }): { x: number; y: number } {
-    const zoomAmt = Math.pow(1.2, wm.settings.panel.zoomScale);
+    const zoomAmt = getZoomFactor(wm.settings.panel.zoomScale);
     return {
       x: pos.x * zoomAmt * aspectMultiplier,
       y: pos.y * zoomAmt * aspectMultiplier,
@@ -305,47 +306,35 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
   }, [options, data, nodes]); // need to keep nodes here for good looking updating
 
   const zoom = (e: WheelEvent) => {
-    // Just don't allow zooming when not in edit mode
-    if (!isEditMode && !e.shiftKey) {
+    if (!shouldAllowZoom(isEditMode, e.shiftKey)) {
       return;
     }
 
-    let zoomed: Weathermap = wm;
-
-    if (e.deltaY > 0) {
-      zoomed.settings.panel.zoomScale += 1;
-    } else {
-      zoomed.settings.panel.zoomScale -= 1;
-    }
     onOptionsChange({
-      weathermap: zoomed,
+      weathermap: applyZoomDelta(wm, e.deltaY),
     });
   };
 
   const [isDragging, setDragging] = useState(false);
 
-  let aspectX = wm.settings.panel.panelSize.width / width2;
-  let aspectY = wm.settings.panel.panelSize.height / height2;
-  let aspectMultiplier = Math.max(aspectX, aspectY);
-
-  const updateAspects = () => {
-    aspectX = wm.settings.panel.panelSize.width / width2;
-    aspectY = wm.settings.panel.panelSize.height / height2;
-    aspectMultiplier = Math.max(aspectX, aspectY);
-  };
+  const aspectX = wm.settings.panel.panelSize.width / width2;
+  const aspectY = wm.settings.panel.panelSize.height / height2;
+  const aspectMultiplier = Math.max(aspectX, aspectY);
 
   const [offset, setOffset] = useState(wm.settings.panel.offset);
 
   const drag = (e: React.MouseEvent<SVGSVGElement, MouseEvent>) => {
     if (e.ctrlKey || e.buttons === 4 || e.shiftKey) {
       e.nativeEvent.preventDefault();
-      const zoomAmt = Math.pow(1.2, wm.settings.panel.zoomScale);
 
       setOffset((prev) => {
-        return {
-          x: prev.x + e.nativeEvent.movementX * zoomAmt * aspectMultiplier,
-          y: prev.y + e.nativeEvent.movementY * zoomAmt * aspectMultiplier,
-        };
+        return applyPanOffset(
+          prev,
+          e.nativeEvent.movementX,
+          e.nativeEvent.movementY,
+          wm.settings.panel.zoomScale,
+          aspectMultiplier
+        );
       });
     }
   };
@@ -578,7 +567,6 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
           onWheel={zoom}
           onMouseDown={(e) => {
             e.preventDefault();
-            updateAspects();
             setDragging(true);
           }}
           onMouseMove={(e) => {

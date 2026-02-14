@@ -174,9 +174,11 @@ test('Check edit mode display', () => {
 
   // Check we can zoom the viewport (only possible in edit mode)
   fireEvent.wheel(container.querySelector('#nw-testing_')!, { deltaY: 1 });
+  rerender(<WeathermapPanel {...testProps} />);
   expect(testProps.options.weathermap.settings.panel.zoomScale).not.toEqual(0);
 
   fireEvent.wheel(container.querySelector('#nw-testing_')!, { deltaY: -1 });
+  rerender(<WeathermapPanel {...testProps} />);
   expect(testProps.options.weathermap.settings.panel.zoomScale).toEqual(0);
 
   window.history.pushState({}, '', '/');
