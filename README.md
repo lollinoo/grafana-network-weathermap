@@ -18,3 +18,36 @@ Other examples:
 ![Example Image 3](https://raw.githubusercontent.com/knightss27/grafana-network-weathermap/main/src/img/example_01.png)
 
 ![Example Image 4](https://raw.githubusercontent.com/knightss27/grafana-network-weathermap/main/src/img/example_02.png)
+
+## Local install on a recent Grafana instance
+
+Build the plugin:
+
+```bash
+npm ci
+npm run build
+```
+
+Install the built plugin in Grafana:
+
+```bash
+mkdir -p /var/lib/grafana/plugins/knightss27-weathermap-panel
+cp -R dist/* /var/lib/grafana/plugins/knightss27-weathermap-panel/
+```
+
+Allow loading the unsigned plugin (required for local testing):
+
+```ini
+[plugins]
+allow_loading_unsigned_plugins = knightss27-weathermap-panel
+```
+
+Or with Docker:
+
+```bash
+docker run -d --name grafana \
+  -p 3000:3000 \
+  -e GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=knightss27-weathermap-panel \
+  -v "$(pwd)/dist:/var/lib/grafana/plugins/knightss27-weathermap-panel" \
+  grafana/grafana:latest
+```
