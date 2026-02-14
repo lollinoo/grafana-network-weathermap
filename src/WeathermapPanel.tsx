@@ -44,6 +44,7 @@ import {
   getPercentPoint,
 } from 'panel/linkMath';
 import { enrichHoveredLinkData } from 'panel/hoverLink';
+import { buildRenderLinkContext } from 'panel/renderLink';
 
 // Calculate node position, width, etc.
 function generateDrawnNode(d: Node, i: number, wm: Weathermap): DrawnNode {
@@ -450,6 +451,10 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
   });
 
   if (wm) {
+    const renderedLinkContexts = links.map((link) =>
+      buildRenderLinkContext(link, links, tempNodes, (message) => console.warn(message))
+    );
+
     const safeBackgroundImageUrl = sanitizeExternalUrl(wm.settings.panel.backgroundImage?.url, {
       allowRelative: true,
       allowDataImage: true,
@@ -737,30 +742,12 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
             })`}
           >
             <g>
-              {links.map((d, i) => {
+              {renderedLinkContexts.map(({ link: d, upstreamLinks }, i) => {
                 if (d.nodes[0].id === d.nodes[1].id) {
                   return;
                 }
-                let prevLinks: DrawnLink[] = [];
                 const safeADashboardLink = sanitizeExternalUrl(d.sides.A.dashboardLink, { allowRelative: true });
                 const safeZDashboardLink = sanitizeExternalUrl(d.sides.Z.dashboardLink, { allowRelative: true });
-                // Automatic data collection through connection links
-                if (tempNodes[d.source.index].isConnection) {
-                  // If this link is coming from a connection, we want to take the link to that connection's data
-                  // Find the link with that data
-                  prevLinks = links.filter((l) => l.target.id === d.source.id);
-                  // Check there is only one connection (otherwise this doesn't work)
-                  if (prevLinks.length === 1) {
-                    for (let key in d.sides.A) {
-                      if (key !== 'labelOffset' && key !== 'anchor') {
-                        // @ts-ignore
-                        d.sides.A[key] = prevLinks[0].sides.A[key];
-                      }
-                    }
-                  } else {
-                    console.warn(`Connection node "${d.source.label}" missing input connection.`);
-                  }
-                }
                 return (
                   <g
                     key={i}
@@ -792,7 +779,7 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
                       <circle
                         cx={d.lineStartA.x}
                         cy={d.lineStartA.y}
-                        r={prevLinks.length > 0 ? Math.max(d.stroke, prevLinks[0].stroke) / 2 : d.stroke / 2}
+                        r={upstreamLinks.length > 0 ? Math.max(d.stroke, upstreamLinks[0].stroke) / 2 : d.stroke / 2}
                         fill={getScaleColor(d.sides.A.currentValue, d.sides.A.bandwidth)}
                         style={{ paintOrder: 'stroke' }}
                       ></circle>
@@ -870,7 +857,7 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
               })}
             </g>
             <g>
-              {links.map((d, i) => {
+              {renderedLinkContexts.map(({ link: d }, i) => {
                 if (d.nodes[0].id === d.nodes[1].id) {
                   return;
                 }
@@ -924,7 +911,7 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
               })}
             </g>
             <g>
-              {links.map((d, i) => {
+              {renderedLinkContexts.map(({ link: d }, i) => {
                 if (d.nodes[0].id === d.nodes[1].id || tempNodes[d.target.index].isConnection) {
                   return;
                 }
