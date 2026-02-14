@@ -3,122 +3,85 @@ name: Release
 on:
   push:
     tags:
-      - 'v*.*.*' # Run workflow on version tags, e.g. v1.0.0.
+      - 'v*.*.*'
+
+permissions:
+  contents: write
 
 jobs:
   release:
+    name: Release Plugin
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js environment
-        uses: actions/setup-node@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          node-version: '16.x'
+          node-version-file: '.nvmrc'
+          cache: 'npm'
 
-      - name: Setup Go environment
-        uses: actions/setup-go@v2
-        with:
-          go-version: '1.16'
-
-      - name: Cache node_modules
-        id: cache-node-modules
-        uses: actions/cache@v2
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-${{ matrix.node-version }}-nodemodules-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ matrix.node-version }}-nodemodules-
       - name: Install dependencies
-        run: npm install
-        if: |
-          steps.cache-yarn-cache.outputs.cache-hit != 'true' ||
-          steps.cache-node-modules.outputs.cache-hit != 'true'
-      - name: Run CI tests just to make sure
+        run: npm ci
+
+      - name: Run tests
         run: npm run test:ci
 
       - name: Build plugin
         run: npm run build
 
       - name: Sign plugin
+        if: ${{ secrets.GRAFANA_API_KEY != '' }}
         run: npm run sign
         env:
           GRAFANA_API_KEY: ${{ secrets.GRAFANA_API_KEY }}
 
-      - name: Get plugin metadata
+      - name: Read plugin metadata
         id: metadata
         run: |
-          sudo apt-get install jq
-          export GRAFANA_PLUGIN_ID=$(cat dist/plugin.json | jq -r .id)
-          export GRAFANA_PLUGIN_VERSION=$(cat dist/plugin.json | jq -r .info.version)
-          export GRAFANA_PLUGIN_TYPE=$(cat dist/plugin.json | jq -r .type)
-          export GRAFANA_PLUGIN_ARTIFACT=${GRAFANA_PLUGIN_ID}-${GRAFANA_PLUGIN_VERSION}.zip
-          export GRAFANA_PLUGIN_ARTIFACT_CHECKSUM=${GRAFANA_PLUGIN_ARTIFACT}.md5
-          echo "::set-output name=plugin-id::${GRAFANA_PLUGIN_ID}"
-          echo "::set-output name=plugin-version::${GRAFANA_PLUGIN_VERSION}"
-          echo "::set-output name=plugin-type::${GRAFANA_PLUGIN_TYPE}"
-          echo "::set-output name=archive::${GRAFANA_PLUGIN_ARTIFACT}"
-          echo "::set-output name=archive-checksum::${GRAFANA_PLUGIN_ARTIFACT_CHECKSUM}"
-          echo ::set-output name=github-tag::${GITHUB_REF#refs/*/}
-      - name: Read changelog
-        id: changelog
+          PLUGIN_ID="$(jq -r '.id' dist/plugin.json)"
+          PLUGIN_VERSION="$(jq -r '.info.version' dist/plugin.json)"
+          PLUGIN_TYPE="$(jq -r '.type' dist/plugin.json)"
+          ARCHIVE="${PLUGIN_ID}-${PLUGIN_VERSION}.zip"
+          CHECKSUM="${ARCHIVE}.sha256"
+
+          echo "plugin_id=${PLUGIN_ID}" >> "${GITHUB_OUTPUT}"
+          echo "plugin_version=${PLUGIN_VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "plugin_type=${PLUGIN_TYPE}" >> "${GITHUB_OUTPUT}"
+          echo "archive=${ARCHIVE}" >> "${GITHUB_OUTPUT}"
+          echo "checksum_file=${CHECKSUM}" >> "${GITHUB_OUTPUT}"
+
+      - name: Check tag and package version match
+        run: |
+          if [ "v${{ steps.metadata.outputs.plugin_version }}" != "${GITHUB_REF_NAME}" ]; then
+            echo "Plugin version does not match git tag"
+            exit 1
+          fi
+
+      - name: Read changelog section
         run: |
           awk '/^## / {s++} s == 1 {print}' CHANGELOG.md > release_notes.md
-          echo "::set-output name=path::release_notes.md"
-      - name: Check package version
-        run: if [ "v${{ steps.metadata.outputs.plugin-version }}" != "${{ steps.metadata.outputs.github-tag }}" ]; then printf "\033[0;31mPlugin version doesn't match tag name\033[0m\n"; exit 1; fi
 
       - name: Package plugin
-        id: package-plugin
+        id: package
         run: |
-          mv dist ${{ steps.metadata.outputs.plugin-id }}
-          zip ${{ steps.metadata.outputs.archive }} ${{ steps.metadata.outputs.plugin-id }} -r
-          md5sum ${{ steps.metadata.outputs.archive }} > ${{ steps.metadata.outputs.archive-checksum }}
-          echo "::set-output name=checksum::$(cat ./${{ steps.metadata.outputs.archive-checksum }} | cut -d' ' -f1)"
-      #       to use when actually signed
-      #       - name: Lint plugin
-      #         run: |
-      #           git clone https://github.com/grafana/plugin-validator
-      #           pushd ./plugin-validator/pkg/cmd/plugincheck
-      #           go install
-      #           popd
-      #           plugincheck ${{ steps.metadata.outputs.archive }}
-      - name: Create release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          mv dist "${{ steps.metadata.outputs.plugin_id }}"
+          zip -r "${{ steps.metadata.outputs.archive }}" "${{ steps.metadata.outputs.plugin_id }}"
+          sha256sum "${{ steps.metadata.outputs.archive }}" > "${{ steps.metadata.outputs.checksum_file }}"
+          CHECKSUM="$(cut -d' ' -f1 "${{ steps.metadata.outputs.checksum_file }}")"
+          echo "checksum=${CHECKSUM}" >> "${GITHUB_OUTPUT}"
+
+      - name: Create GitHub release draft
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          body_path: ${{ steps.changelog.outputs.path }}
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          body_path: release_notes.md
           draft: true
+          files: |
+            ${{ steps.metadata.outputs.archive }}
+            ${{ steps.metadata.outputs.checksum_file }}
 
-      - name: Add plugin to release
-        id: upload-plugin-asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./${{ steps.metadata.outputs.archive }}
-          asset_name: ${{ steps.metadata.outputs.archive }}
-          asset_content_type: application/zip
-
-      - name: Add checksum to release
-        id: upload-checksum-asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./${{ steps.metadata.outputs.archive-checksum }}
-          asset_name: ${{ steps.metadata.outputs.archive-checksum }}
-          asset_content_type: text/plain
-
-      - name: Publish draft release
+      - name: Print release metadata
         run: |
-          echo Draft release created.
-          echo
-          echo '{ "id": "${{ steps.metadata.outputs.plugin-id }}", "type": "${{ steps.metadata.outputs.plugin-type }}", "url": "https://github.com/${{ github.repository }}", "versions": [ { "version": "${{ steps.metadata.outputs.plugin-version }}", "commit": "${{ github.sha }}", "url": "https://github.com/${{ github.repository }}", "download": { "any": { "url": "https://github.com/${{ github.repository }}/releases/download/v${{ steps.metadata.outputs.plugin-version }}/${{ steps.metadata.outputs.archive }}", "md5": "${{ steps.package-plugin.outputs.checksum }}" } } } ] }' | jq .
+          echo "{ \"id\": \"${{ steps.metadata.outputs.plugin_id }}\", \"type\": \"${{ steps.metadata.outputs.plugin_type }}\", \"version\": \"${{ steps.metadata.outputs.plugin_version }}\", \"checksum\": \"${{ steps.package.outputs.checksum }}\" }"
