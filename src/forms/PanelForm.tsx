@@ -60,6 +60,7 @@ export const PanelForm = ({ value, onChange }: Props) => {
               variant="destructive"
               size="md"
               icon="trash-alt"
+              aria-label="Remove background image"
               onClick={() => {
                 if (!confirm('Are you sure you want remove the background image?')) {
                   return;
@@ -72,6 +73,7 @@ export const PanelForm = ({ value, onChange }: Props) => {
             ></Button>
           ) : (
             <Button
+              aria-label="Add background image"
               onClick={() => {
                 let options = value;
                 options.settings.panel.backgroundImage = {
@@ -220,6 +222,7 @@ export const PanelForm = ({ value, onChange }: Props) => {
             variant="destructive"
             size="md"
             icon="trash-alt"
+            aria-label="Reset link units"
             onClick={() => {
               if (!confirm('Are you sure you want to reset all link units?')) {
                 return;

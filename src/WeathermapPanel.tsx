@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { DataFrame, Field, getTimeZone, getValueFormat, PanelProps, Vector } from '@grafana/data';
+import { DataFrame, Field, getTimeZone, getValueFormat, PanelProps } from '@grafana/data';
 import {
   Anchor,
   DrawnLink,
@@ -630,7 +630,7 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
                     isVisible: true,
                     showLegend: false,
                   }}
-                  tweakScale={(opts, forField: Field<any, Vector<any>>) => {
+                  tweakScale={(opts, forField: Field<any>) => {
                     opts.softMin = 0;
                     if (
                       wm.settings.tooltip.scaleToBandwidth &&
@@ -640,7 +640,7 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
                     }
                     return opts;
                   }}
-                  tweakAxis={(opts, forField: Field<any, Vector<any>>) => {
+                  tweakAxis={(opts, forField: Field<any>) => {
                     opts.formatValue = getlinkGraphFormatter(
                       hoveredLink.link.units
                         ? hoveredLink.link.units
