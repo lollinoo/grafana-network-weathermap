@@ -109,7 +109,7 @@
 
 ## 2026-02-11 (documentation synchronization)
 
-### [working-tree] docs: split phase detail documents and refresh roadmap
+### [0f2a360] docs: split phase detail documents and refresh roadmap
 - Type: documentation / project governance.
 - Scope: `docs/00_initial_report_and_plans.md`, `docs/01_phase0_detail_diff_changes.md`, `docs/02_progressive_changelog.md`, `docs/03_phase1_detail_diff_changes.md`.
 - Changes:
@@ -140,7 +140,7 @@
 
 ## Current branch status
 - Branch: `devs`
-- Latest recorded code commit: `9733e35`
+- Latest recorded code commit: `26c39d5`
 - Phase 0 status: completed.
 - Phase 1 status: completed (platform/CI modernization).
 - Phase 1.5 status: in progress (dependency vulnerability remediation).
