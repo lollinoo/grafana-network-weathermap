@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { css } from 'emotion';
 import {
   Button,
@@ -29,6 +29,41 @@ interface Props extends StandardEditorProps<Weathermap, Settings> {}
 export const NodeForm = ({ value, onChange, context }: Props) => {
   const styles = getStyles();
   const theme = useTheme2();
+  const [currentNode, setCurrentNode] = useState<Node | null>(null);
+
+  const updateEditorSelection = (nodeId: string | undefined) => {
+    const previousSelection = value.editorSelection ?? {};
+    let weathermap: Weathermap = value;
+    weathermap.editorSelection = {
+      ...previousSelection,
+      selectedNodeId: nodeId,
+      selectedType: nodeId
+        ? 'node'
+        : previousSelection.selectedType === 'node'
+        ? undefined
+        : previousSelection.selectedType,
+    };
+    onChange(weathermap);
+  };
+
+  useEffect(() => {
+    const selectedNodeId =
+      value.editorSelection?.selectedType === 'node' ? value.editorSelection.selectedNodeId : undefined;
+    if (!selectedNodeId) {
+      return;
+    }
+
+    const selectedNode = value.nodes.find((node) => node.id === selectedNodeId);
+    if (selectedNode && selectedNode.id !== currentNode?.id) {
+      setCurrentNode(selectedNode);
+    }
+  }, [currentNode?.id, value.editorSelection?.selectedNodeId, value.editorSelection?.selectedType, value.nodes]);
+
+  useEffect(() => {
+    if (currentNode && !value.nodes.some((node) => node.id === currentNode.id)) {
+      setCurrentNode(null);
+    }
+  }, [currentNode, value.nodes]);
 
   let connectionCounter = 0;
   for (let node of value.nodes) {
@@ -91,6 +126,10 @@ export const NodeForm = ({ value, onChange, context }: Props) => {
   };
 
   const applyNodeColorToAll = () => {
+    if (!currentNode) {
+      return;
+    }
+
     let weathermap: Weathermap = value;
     for (let node of weathermap.nodes) {
       node.colors = { ...currentNode.colors };
@@ -193,12 +232,18 @@ export const NodeForm = ({ value, onChange, context }: Props) => {
       isConnection: false,
     };
     weathermap.nodes.push(node);
+    weathermap.editorSelection = {
+      ...(weathermap.editorSelection ?? {}),
+      selectedType: 'node',
+      selectedNodeId: node.id,
+    };
     onChange(weathermap);
     setCurrentNode(node);
   };
 
   const removeNode = (i: number) => {
     let weathermap: Weathermap = value;
+    const removedNodeId = weathermap.nodes[i].id;
     weathermap.links = weathermap.links.filter((link) => {
       for (const node of link.nodes) {
         if (node.id === weathermap.nodes[i].id) {
@@ -208,6 +253,13 @@ export const NodeForm = ({ value, onChange, context }: Props) => {
       return true;
     });
     weathermap.nodes.splice(i, 1);
+    if (weathermap.editorSelection?.selectedNodeId === removedNodeId) {
+      weathermap.editorSelection = {
+        ...weathermap.editorSelection,
+        selectedNodeId: undefined,
+        selectedType: weathermap.editorSelection.selectedType === 'node' ? undefined : weathermap.editorSelection.selectedType,
+      };
+    }
     onChange(weathermap);
   };
 
@@ -215,10 +267,14 @@ export const NodeForm = ({ value, onChange, context }: Props) => {
     let weathermap: Weathermap = value;
     weathermap.nodes = [];
     weathermap.links = [];
+    weathermap.editorSelection = {
+      ...(weathermap.editorSelection ?? {}),
+      selectedNodeId: undefined,
+      selectedLinkId: undefined,
+      selectedType: undefined,
+    };
     onChange(weathermap);
   };
-
-  const [currentNode, setCurrentNode] = useState('null' as unknown as Node);
 
   const ciscoIconsFormatted = CiscoIcons.map((t) => {
     return { label: t, value: 'cisco/' + t };
@@ -255,7 +311,9 @@ export const NodeForm = ({ value, onChange, context }: Props) => {
       </h6>
       <Select
         onChange={(v) => {
-          setCurrentNode(v as unknown as Node);
+          const selectedNode = (v as Node | null) ?? null;
+          setCurrentNode(selectedNode);
+          updateEditorSelection(selectedNode?.id);
         }}
         value={currentNode}
         options={value.nodes as unknown as Array<SelectableValue<Node>>}

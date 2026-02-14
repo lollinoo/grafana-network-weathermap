@@ -30,6 +30,7 @@ export const WeathermapBuilder = (props: Props) => {
     }),
     links: [generateBasicLink([defaultNodes[0], defaultNodes[1]])],
     scale: [],
+    editorSelection: {},
     settings: {
       link: {
         spacing: {

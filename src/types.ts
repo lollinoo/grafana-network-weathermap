@@ -208,6 +208,11 @@ export interface Weathermap {
   links: Link[];
   scale: Threshold[];
   settings: WeathermapSettings;
+  editorSelection?: {
+    selectedType?: 'node' | 'link';
+    selectedNodeId?: string;
+    selectedLinkId?: string;
+  };
 }
 
 export interface SimpleOptions {

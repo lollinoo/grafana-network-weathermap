@@ -36,6 +36,8 @@ describe('LinkLabelsLayer', () => {
           panelBackgroundColor="#111111"
           onLinkHover={jest.fn()}
           onLinkHoverLoss={jest.fn()}
+          onLinkClick={jest.fn()}
+          isEditMode={true}
         />
       </svg>
     );
@@ -59,6 +61,8 @@ describe('LinkLabelsLayer', () => {
           panelBackgroundColor="#111111"
           onLinkHover={jest.fn()}
           onLinkHoverLoss={jest.fn()}
+          onLinkClick={jest.fn()}
+          isEditMode={true}
         />
       </svg>
     );

@@ -357,6 +357,32 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
 
   const [hoveredLink, setHoveredLink] = useState(null as unknown as HoveredLink);
 
+  const selectEditorEntity = (type: 'node' | 'link', id: string) => {
+    if (!isEditMode) {
+      return;
+    }
+
+    const previous = wm.editorSelection;
+    if (
+      previous?.selectedType === type &&
+      ((type === 'node' && previous.selectedNodeId === id) || (type === 'link' && previous.selectedLinkId === id))
+    ) {
+      return;
+    }
+
+    onOptionsChange({
+      weathermap: {
+        ...wm,
+        editorSelection: {
+          ...previous,
+          selectedType: type,
+          selectedNodeId: type === 'node' ? id : previous?.selectedNodeId,
+          selectedLinkId: type === 'link' ? id : previous?.selectedLinkId,
+        },
+      },
+    });
+  };
+
   const handleLinkHover = (d: DrawnLink, side: 'A' | 'Z', e: any) => {
     if (e.shiftKey) {
       return;
@@ -371,6 +397,10 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
       return;
     }
     setHoveredLink(null as unknown as HoveredLink);
+  };
+
+  const handleLinkClick = (link: DrawnLink, _side: 'A' | 'Z', _event: any) => {
+    selectEditorEntity('link', link.id);
   };
 
   const handleNodeDrag = (nodeIndex: number, e: any, position: any) => {
@@ -398,13 +428,14 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
     const safeNodeDashboardLink = sanitizeExternalUrl(nodes[nodeIndex].dashboardLink, {
       allowRelative: true,
     });
+    if (isEditMode) {
+      selectEditorEntity('node', nodes[nodeIndex].id);
+    }
     if (e.ctrlKey && isEditMode) {
       setSelectedNodes((selected) => toggleSelectedNode(selected, nodes[nodeIndex]));
     } else if (!isEditMode && safeNodeDashboardLink) {
       openSafeUrl(safeNodeDashboardLink);
     }
-    // Force an update
-    onOptionsChange(options);
   };
 
   const filteredGraphQueries = useMemo(
@@ -563,6 +594,8 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
               getScaleColor={getScaleColor}
               onLinkHover={handleLinkHover}
               onLinkHoverLoss={handleLinkHoverLoss}
+              onLinkClick={handleLinkClick}
+              isEditMode={isEditMode}
             />
             <LinkLabelsLayer
               renderedLinkContexts={renderedLinkContexts}
@@ -575,6 +608,8 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
               panelBackgroundColor={wm.settings.panel.backgroundColor}
               onLinkHover={handleLinkHover}
               onLinkHoverLoss={handleLinkHoverLoss}
+              onLinkClick={handleLinkClick}
+              isEditMode={isEditMode}
             />
             <LinkLabelsLayer
               renderedLinkContexts={renderedLinkContexts}
@@ -587,6 +622,8 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
               panelBackgroundColor={wm.settings.panel.backgroundColor}
               onLinkHover={handleLinkHover}
               onLinkHoverLoss={handleLinkHoverLoss}
+              onLinkClick={handleLinkClick}
+              isEditMode={isEditMode}
             />
             <NodeLayer
               nodes={nodes}

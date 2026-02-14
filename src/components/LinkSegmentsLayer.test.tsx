@@ -41,6 +41,8 @@ describe('LinkSegmentsLayer', () => {
           getScaleColor={() => '#cccccc'}
           onLinkHover={jest.fn()}
           onLinkHoverLoss={jest.fn()}
+          onLinkClick={jest.fn()}
+          isEditMode={true}
         />
       </svg>
     );
@@ -61,6 +63,8 @@ describe('LinkSegmentsLayer', () => {
           getScaleColor={() => '#cccccc'}
           onLinkHover={hoverSpy}
           onLinkHoverLoss={hoverLossSpy}
+          onLinkClick={jest.fn()}
+          isEditMode={true}
         />
       </svg>
     );

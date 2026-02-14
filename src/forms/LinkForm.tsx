@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { css } from 'emotion';
 import {
   Button,
@@ -27,6 +27,42 @@ interface Props extends StandardEditorProps<Weathermap, Settings> {}
 export const LinkForm = (props: Props) => {
   const { value, onChange, context } = props;
   const styles = getStyles();
+
+  const [currentLink, setCurrentLink] = useState<Link | null>(null);
+
+  const updateEditorSelection = (linkId: string | undefined) => {
+    const previousSelection = value.editorSelection ?? {};
+    let weathermap: Weathermap = value;
+    weathermap.editorSelection = {
+      ...previousSelection,
+      selectedLinkId: linkId,
+      selectedType: linkId
+        ? 'link'
+        : previousSelection.selectedType === 'link'
+        ? undefined
+        : previousSelection.selectedType,
+    };
+    onChange(weathermap);
+  };
+
+  useEffect(() => {
+    const selectedLinkId =
+      value.editorSelection?.selectedType === 'link' ? value.editorSelection.selectedLinkId : undefined;
+    if (!selectedLinkId) {
+      return;
+    }
+
+    const selectedLink = value.links.find((link) => link.id === selectedLinkId);
+    if (selectedLink && selectedLink.id !== currentLink?.id) {
+      setCurrentLink(selectedLink);
+    }
+  }, [currentLink?.id, value.editorSelection?.selectedLinkId, value.editorSelection?.selectedType, value.links]);
+
+  useEffect(() => {
+    if (currentLink && !value.links.some((link) => link.id === currentLink.id)) {
+      setCurrentLink(null);
+    }
+  }, [currentLink, value.links]);
 
   const findNodeIndex = (n1: Node): number => {
     let nodeIndex = -1;
@@ -136,6 +172,11 @@ export const LinkForm = (props: Props) => {
     };
     weathermap.nodes[0].anchors[Anchor.Center].numLinks += 2;
     weathermap.links.push(link);
+    weathermap.editorSelection = {
+      ...(weathermap.editorSelection ?? {}),
+      selectedType: 'link',
+      selectedLinkId: link.id,
+    };
     onChange(weathermap);
     setCurrentLink(link);
   };
@@ -151,6 +192,13 @@ export const LinkForm = (props: Props) => {
       }
     }
     weathermap.links.splice(i, 1);
+    if (weathermap.editorSelection?.selectedLinkId === toRemove.id) {
+      weathermap.editorSelection = {
+        ...weathermap.editorSelection,
+        selectedLinkId: undefined,
+        selectedType: weathermap.editorSelection.selectedType === 'link' ? undefined : weathermap.editorSelection.selectedType,
+      };
+    }
     onChange(weathermap);
   };
 
@@ -166,10 +214,13 @@ export const LinkForm = (props: Props) => {
         4: { numLinks: 0, numFilledLinks: 0 },
       };
     }
+    weathermap.editorSelection = {
+      ...(weathermap.editorSelection ?? {}),
+      selectedLinkId: undefined,
+      selectedType: weathermap.editorSelection?.selectedType === 'link' ? undefined : weathermap.editorSelection?.selectedType,
+    };
     props.onChange(weathermap);
   };
-
-  const [currentLink, setCurrentLink] = useState('null' as unknown as Link);
 
   // Logic for disallowing more than two links (one in, one out) from connection nodes.
   let usedConnectionSourceNodes: string[] = [];
@@ -208,7 +259,9 @@ export const LinkForm = (props: Props) => {
       </h6>
       <Select
         onChange={(v) => {
-          setCurrentLink(v as Link);
+          const selectedLink = (v as Link | null) ?? null;
+          setCurrentLink(selectedLink);
+          updateEditorSelection(selectedLink?.id);
         }}
         value={currentLink}
         options={value.links}
@@ -425,6 +478,10 @@ export const LinkForm = (props: Props) => {
                   variant="primary"
                   size="md"
                   onClick={() => {
+                    if (!currentLink) {
+                      return;
+                    }
+
                     let weathermap: Weathermap = value;
                     for (let link of weathermap.links) {
                       link.arrows = { ...currentLink.arrows };

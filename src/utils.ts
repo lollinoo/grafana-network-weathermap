@@ -348,6 +348,7 @@ export function handleVersionedStateUpdates(wm: Weathermap, theme: GrafanaTheme2
     nodes: [],
     links: [],
     scale: [],
+    editorSelection: {},
     settings: {
       link: {
         spacing: {

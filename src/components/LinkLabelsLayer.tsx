@@ -20,6 +20,8 @@ interface LinkLabelsLayerProps {
   panelBackgroundColor: string;
   onLinkHover: (link: DrawnLink, side: 'A' | 'Z', event: any) => void;
   onLinkHoverLoss: (event: any) => void;
+  onLinkClick: (link: DrawnLink, side: 'A' | 'Z', event: React.MouseEvent<SVGGElement>) => void;
+  isEditMode: boolean;
 }
 
 export const LinkLabelsLayer: React.FC<LinkLabelsLayerProps> = ({
@@ -33,6 +35,8 @@ export const LinkLabelsLayer: React.FC<LinkLabelsLayerProps> = ({
   panelBackgroundColor,
   onLinkHover,
   onLinkHoverLoss,
+  onLinkClick,
+  isEditMode,
 }) => {
   return (
     <g>
@@ -54,6 +58,8 @@ export const LinkLabelsLayer: React.FC<LinkLabelsLayerProps> = ({
               onLinkHover(d, side, e);
             }}
             onMouseOut={onLinkHoverLoss}
+            onClick={(e) => onLinkClick(d, side, e)}
+            style={isEditMode ? { cursor: 'pointer' } : {}}
             key={i}
           >
             <rect
