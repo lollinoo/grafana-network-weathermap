@@ -31,6 +31,8 @@ import {
   CURRENT_VERSION,
   handleVersionedStateUpdates,
   getDataFrameName,
+  openSafeUrl,
+  sanitizeExternalUrl,
 } from 'utils';
 import MapNode from './components/MapNode';
 import ColorScale from 'components/ColorScale';
@@ -534,6 +536,14 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
   });
 
   if (wm) {
+    const safeBackgroundImageUrl = sanitizeExternalUrl(wm.settings.panel.backgroundImage?.url, {
+      allowRelative: true,
+      allowDataImage: true,
+    });
+    const safeHoveredLinkDashboardUrl = hoveredLink
+      ? sanitizeExternalUrl(hoveredLink.link.sides[hoveredLink.side].dashboardLink, { allowRelative: true })
+      : undefined;
+
     return (
       <div
         className={cx(
@@ -592,7 +602,7 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
               {hoveredLink.link.sides.A.currentPercentageText}
             </div>
             <div style={{ fontSize: wm.settings.tooltip.fontSize, paddingBottom: '4px' }}>
-              {hoveredLink.link.sides[hoveredLink.side].dashboardLink.length > 0 ? 'Click to see more.' : ''}
+              {safeHoveredLinkDashboardUrl ? 'Click to see more.' : ''}
             </div>
             {(hoveredLink.link.sides.A.query || hoveredLink.link.sides.Z.query) && filteredGraphQueries.length > 0 ? (
               <React.Fragment>
@@ -699,7 +709,9 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
             top: 0,
             left: 0,
             backgroundImage: wm.settings.panel.backgroundImage
-              ? `url(${wm.settings.panel.backgroundImage.url})`
+              ? safeBackgroundImageUrl
+                ? `url(${safeBackgroundImageUrl})`
+                : 'none'
               : 'none',
             backgroundSize: wm.settings.panel.backgroundImage?.fit,
             backgroundPosition: 'center',
@@ -816,6 +828,8 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
                   return;
                 }
                 let prevLinks: DrawnLink[] = [];
+                const safeADashboardLink = sanitizeExternalUrl(d.sides.A.dashboardLink, { allowRelative: true });
+                const safeZDashboardLink = sanitizeExternalUrl(d.sides.Z.dashboardLink, { allowRelative: true });
                 // Automatic data collection through connection links
                 if (tempNodes[d.source.index].isConnection) {
                   // If this link is coming from a connection, we want to take the link to that connection's data
@@ -854,11 +868,11 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
                       }}
                       onMouseOut={handleLinkHoverLoss}
                       onClick={() => {
-                        if (d.sides.A.dashboardLink.length > 0) {
-                          window.open(d.sides.A.dashboardLink, '_blank');
+                        if (safeADashboardLink) {
+                          openSafeUrl(safeADashboardLink);
                         }
                       }}
-                      style={d.sides.A.dashboardLink.length > 0 ? { cursor: 'pointer' } : {}}
+                      style={safeADashboardLink ? { cursor: 'pointer' } : {}}
                     ></line>
                     {tempNodes[d.source.index].isConnection ? (
                       <circle
@@ -890,11 +904,11 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
                           }}
                           onMouseOut={handleLinkHoverLoss}
                           onClick={() => {
-                            if (d.sides.A.dashboardLink.length > 0) {
-                              window.open(d.sides.A.dashboardLink, '_blank');
+                            if (safeADashboardLink) {
+                              openSafeUrl(safeADashboardLink);
                             }
                           }}
-                          style={d.sides.A.dashboardLink.length > 0 ? { cursor: 'pointer' } : {}}
+                          style={safeADashboardLink ? { cursor: 'pointer' } : {}}
                         ></polygon>
                         <line
                           strokeWidth={d.stroke}
@@ -908,11 +922,11 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
                           }}
                           onMouseOut={handleLinkHoverLoss}
                           onClick={() => {
-                            if (d.sides.Z.dashboardLink.length > 0) {
-                              window.open(d.sides.Z.dashboardLink, '_blank');
+                            if (safeZDashboardLink) {
+                              openSafeUrl(safeZDashboardLink);
                             }
                           }}
-                          style={d.sides.Z.dashboardLink.length > 0 ? { cursor: 'pointer' } : {}}
+                          style={safeZDashboardLink ? { cursor: 'pointer' } : {}}
                         ></line>
                         <polygon
                           points={`
@@ -929,11 +943,11 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
                           }}
                           onMouseOut={handleLinkHoverLoss}
                           onClick={() => {
-                            if (d.sides.Z.dashboardLink.length > 0) {
-                              window.open(d.sides.Z.dashboardLink, '_blank');
+                            if (safeZDashboardLink) {
+                              openSafeUrl(safeZDashboardLink);
                             }
                           }}
-                          style={d.sides.Z.dashboardLink.length > 0 ? { cursor: 'pointer' } : {}}
+                          style={safeZDashboardLink ? { cursor: 'pointer' } : {}}
                         ></polygon>
                       </React.Fragment>
                     )}
@@ -1117,6 +1131,9 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
                       });
                     },
                     onClick: (e) => {
+                      const safeNodeDashboardLink = sanitizeExternalUrl(tempNodes[i].dashboardLink, {
+                        allowRelative: true,
+                      });
                       if (e.ctrlKey && isEditMode) {
                         setSelectedNodes((v) => {
                           let cIndex = v.findIndex((n) => n.id === tempNodes[i].id);
@@ -1127,8 +1144,8 @@ export const WeathermapPanel: React.FC<PanelProps<SimpleOptions>> = (props: Pane
                           }
                           return v;
                         });
-                      } else if (!isEditMode && tempNodes[i].dashboardLink) {
-                        window.open(tempNodes[i].dashboardLink, '_blank');
+                      } else if (!isEditMode && safeNodeDashboardLink) {
+                        openSafeUrl(safeNodeDashboardLink);
                       }
                       // Force an update
                       onOptionsChange(options);

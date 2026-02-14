@@ -8,6 +8,8 @@ import {
   handleVersionedStateUpdates,
   measureText,
   nearestMultiple,
+  openSafeUrl,
+  sanitizeExternalUrl,
 } from 'utils';
 
 test('getSolidFromAlphaColor', () => {
@@ -43,4 +45,26 @@ test('node calculations', () => {
 test('versioned state updates', () => {
   let wm: Weathermap = getData(theme);
   expect(handleVersionedStateUpdates(wm, theme)).toHaveProperty('version', CURRENT_VERSION);
+});
+
+test('sanitizeExternalUrl only allows safe schemes', () => {
+  expect(sanitizeExternalUrl('https://example.com/path?q=1')).toBe('https://example.com/path?q=1');
+  expect(sanitizeExternalUrl('/d/network-overview')).toBe('/d/network-overview');
+  expect(sanitizeExternalUrl('javascript:alert(1)')).toBeUndefined();
+  expect(sanitizeExternalUrl('data:text/html;base64,SGVsbG8=')).toBeUndefined();
+  expect(sanitizeExternalUrl('data:image/svg+xml;base64,SGVsbG8=', { allowDataImage: true })).toBe(
+    'data:image/svg+xml;base64,SGVsbG8='
+  );
+});
+
+test('openSafeUrl only opens sanitized urls', () => {
+  const openSpy = jest.spyOn(window, 'open').mockImplementation(() => null);
+
+  openSafeUrl('javascript:alert(1)');
+  expect(openSpy).not.toHaveBeenCalled();
+
+  openSafeUrl('https://example.com/network');
+  expect(openSpy).toHaveBeenCalledWith('https://example.com/network', '_blank', 'noopener,noreferrer');
+
+  openSpy.mockRestore();
 });

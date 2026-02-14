@@ -6,6 +6,65 @@ import { v4 as uuidv4 } from 'uuid';
 export const CURRENT_VERSION = 14;
 
 let colorsCalculatedCache: { [colors: string]: string } = {};
+const URL_SCHEME_REGEX = /^[a-zA-Z][a-zA-Z\d+.-]*:/;
+
+interface SanitizeExternalUrlOptions {
+  allowRelative?: boolean;
+  allowDataImage?: boolean;
+}
+
+/**
+ * Sanitizes a user-controlled URL before it is used by the panel.
+ * Allows only http(s), relative paths, and optionally data:image/* URLs.
+ */
+export function sanitizeExternalUrl(
+  rawUrl: string | undefined,
+  options: SanitizeExternalUrlOptions = {}
+): string | undefined {
+  if (!rawUrl) {
+    return undefined;
+  }
+
+  const trimmed = rawUrl.trim();
+  if (trimmed.length === 0) {
+    return undefined;
+  }
+
+  const allowRelative = options.allowRelative ?? true;
+  const allowDataImage = options.allowDataImage ?? false;
+  const lowerValue = trimmed.toLowerCase();
+
+  if (allowDataImage && lowerValue.startsWith('data:image/')) {
+    return trimmed;
+  }
+
+  if (!URL_SCHEME_REGEX.test(trimmed)) {
+    return allowRelative ? trimmed : undefined;
+  }
+
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+      return trimmed;
+    }
+  } catch (e) {
+    return undefined;
+  }
+
+  return undefined;
+}
+
+export function openSafeUrl(rawUrl: string | undefined): void {
+  const safeUrl = sanitizeExternalUrl(rawUrl, { allowRelative: true });
+  if (!safeUrl) {
+    return;
+  }
+
+  const popup = window.open(safeUrl, '_blank', 'noopener,noreferrer');
+  if (popup) {
+    popup.opener = null;
+  }
+}
 
 /**
  * Creates a solid color from an translucent foreground.

@@ -7,6 +7,7 @@ import {
   calculateRectangleAutoWidth,
   calculateRectangleAutoHeight,
   getDataFrameName,
+  sanitizeExternalUrl,
 } from '../utils';
 import { css } from 'emotion';
 import { stylesFactory } from '@grafana/ui';
@@ -53,6 +54,8 @@ const MapNode: React.FC<NodeProps> = (props: NodeProps) => {
   const rectWidth = useMemo(() => calculateRectangleAutoWidth(node, wm), [node, wm]);
   const rectHeight = useMemo(() => calculateRectangleAutoHeight(node, wm), [node, wm]);
   const textY = useMemo(() => calculateTextY(node), [node]);
+  const safeNodeDashboardLink = sanitizeExternalUrl(node.dashboardLink, { allowRelative: true });
+  const safeIconSrc = sanitizeExternalUrl(node.nodeIcon?.src, { allowRelative: true, allowDataImage: true });
 
   let nodeIsDown = false;
   if (node.statusQuery) {
@@ -70,7 +73,7 @@ const MapNode: React.FC<NodeProps> = (props: NodeProps) => {
   return (
     <DraggableCore disabled={disabled} onDrag={onDrag} onStop={onStop}>
       <g
-        cursor={disabled ? (node.dashboardLink ? 'pointer' : '') : 'move'}
+        cursor={disabled ? (safeNodeDashboardLink ? 'pointer' : '') : 'move'}
         display={node.label !== undefined ? 'inline' : 'none'}
         onClick={onClick}
         transform={`translate(${
@@ -133,7 +136,7 @@ const MapNode: React.FC<NodeProps> = (props: NodeProps) => {
         ) : (
           ''
         )}
-        {node.nodeIcon && node.nodeIcon.src !== '' ? (
+        {node.nodeIcon && safeIconSrc ? (
           <image
             x={-node.nodeIcon.size.width / 2}
             y={
@@ -151,7 +154,7 @@ const MapNode: React.FC<NodeProps> = (props: NodeProps) => {
             }
             width={node.nodeIcon.size.width}
             height={node.nodeIcon.size.height}
-            href={node.nodeIcon.src}
+            href={safeIconSrc}
           />
         ) : (
           ''
