@@ -427,3 +427,22 @@ export function handleVersionedStateUpdates(wm: Weathermap, theme: GrafanaTheme2
 export const getDataFrameName = (frame: DataFrame, allFrames: DataFrame[]): string => {
   return getFieldDisplayName(frame.fields[1], frame);
 };
+
+export const extractAllLabels = (frames: DataFrame[]): Record<string, Set<string>> => {
+  const result: Record<string, Set<string>> = {};
+  frames.forEach((frame) => {
+    frame.fields.forEach((field) => {
+      if (field.labels) {
+        Object.entries(field.labels).forEach(([key, value]) => {
+          if (!result[key]) {
+            result[key] = new Set();
+          }
+          if (value) {
+            result[key].add(value);
+          }
+        });
+      }
+    });
+  });
+  return result;
+};

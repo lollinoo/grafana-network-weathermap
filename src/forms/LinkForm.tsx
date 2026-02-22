@@ -146,6 +146,16 @@ export const LinkForm = (props: Props) => {
     onChange(weathermap);
   };
 
+  const handleQueryFilterChange = (queryRefId: string | undefined, i: number, side: 'A' | 'Z') => {
+    let weathermap: Weathermap = value;
+    weathermap.links[i].sides[side].queryFilter = queryRefId;
+    // Clear selected query and bandwidth when switching source so the user
+    // can immediately pick from the filtered list without manual clearing.
+    weathermap.links[i].sides[side].query = undefined;
+    weathermap.links[i].sides[side].bandwidthQuery = undefined;
+    onChange(weathermap);
+  };
+
   const handleDashboardLinkChange = (val: string, i: number, side: 'A' | 'Z') => {
     let weathermap: Weathermap = value;
     weathermap.links[i].sides[side].dashboardLink = val;
@@ -165,6 +175,7 @@ export const LinkForm = (props: Props) => {
           bandwidth: 0,
           bandwidthQuery: undefined,
           query: undefined,
+          queryFilter: undefined,
           labelOffset: 55,
           anchor: Anchor.Center,
           dashboardLink: '',
@@ -173,6 +184,7 @@ export const LinkForm = (props: Props) => {
           bandwidth: 0,
           bandwidthQuery: undefined,
           query: undefined,
+          queryFilter: undefined,
           labelOffset: 55,
           anchor: Anchor.Center,
           dashboardLink: '',
@@ -250,10 +262,18 @@ export const LinkForm = (props: Props) => {
   let usedConnectionNodes = usedConnectionSourceNodes.filter((n) => usedConnectionTargetNodes.includes(n));
   let availableNodes = value.nodes.filter((n) => !usedConnectionNodes.includes(n.id));
 
-  let dataWithIds: string[] = [];
-  context.data.forEach((d, i) => {
+  // Build query options with refId for grouping
+  let dataWithIds: Array<{ label: string; value: string; refId?: string }> = [];
+  const queryGroups: Map<string, string> = new Map(); // refId -> first display name (used as group label)
+  context.data.forEach((d) => {
     try {
-      dataWithIds.push(getDataFrameName(d, context.data));
+      const name = getDataFrameName(d, context.data);
+      const refId = d.refId ?? 'unknown';
+      dataWithIds.push({ label: name, value: name, refId });
+      if (!queryGroups.has(refId)) {
+        // Use refId as group label; could be improved with query alias if available
+        queryGroups.set(refId, refId);
+      }
     } catch (e) {
       console.warn('Network Weathermap: Error while attempting to access query data.', e);
     }
@@ -313,22 +333,33 @@ export const LinkForm = (props: Props) => {
                       (link.nodes[0].isConnection && link.nodes[1].isConnection) ? (
                       ''
                     ) : (
-                      <InlineField grow label={`${sName} Side Query`} labelWidth={'auto'}>
-                        <Select
-                          onChange={(v) => {
-                            handleDataChange(sName, i, v ? v.value : undefined);
-                          }}
-                          // TODO: Unable to just pass a data frame or string here?
-                          // This is fairly unoptimized if you have loads of data frames
-                          value={dataWithIds.filter((p) => p === side.query)[0]}
-                          options={dataWithIds.map((d) => {
-                            return { value: d, label: d };
-                          })}
-                          className={styles.querySelect}
-                          placeholder={`Select ${sName} Side Query`}
-                          isClearable
-                        ></Select>
-                      </InlineField>
+                      <React.Fragment>
+                        <InlineField grow label={`${sName} Query Source`} labelWidth={'auto'}>
+                          <Select
+                            onChange={(v) => handleQueryFilterChange(v?.value, i, sName)}
+                            value={side.queryFilter ? { label: queryGroups.get(side.queryFilter) ?? side.queryFilter, value: side.queryFilter } : null}
+                            options={Array.from(queryGroups.entries()).map(([refId, label]) => ({ label, value: refId }))}
+                            className={styles.querySelect}
+                            placeholder={`All queries`}
+                            isClearable
+                          />
+                        </InlineField>
+                        <InlineField grow label={`${sName} Side Query`} labelWidth={'auto'}>
+                          <Select
+                            onChange={(v) => {
+                              handleDataChange(sName, i, v ? v.value : undefined);
+                            }}
+                            value={dataWithIds.find((p) => p.value === side.query) || null}
+                            options={dataWithIds.filter(d => {
+                              if (!side.queryFilter) { return true; }
+                              return d.refId === side.queryFilter;
+                            })}
+                            className={styles.querySelect}
+                            placeholder={`Select ${sName} Side Query`}
+                            isClearable
+                          ></Select>
+                        </InlineField>
+                      </React.Fragment>
                     )}
                     {(link.nodes[1].isConnection && sName === 'Z') ||
                       (link.nodes[0].isConnection && sName === 'A') ||
@@ -356,9 +387,10 @@ export const LinkForm = (props: Props) => {
                             onChange={(v) => {
                               handleBandwidthQueryChange(v ? v.value : undefined, i, sName);
                             }}
-                            value={dataWithIds.filter((p) => p === side.bandwidthQuery)[0]}
-                            options={dataWithIds.map((d) => {
-                              return { value: d, label: d };
+                            value={dataWithIds.find((p) => p.value === side.bandwidthQuery) || null}
+                            options={dataWithIds.filter(d => {
+                              if (!side.queryFilter) { return true; }
+                              return d.refId === side.queryFilter;
                             })}
                             className={styles.bandwidthSelect}
                             placeholder={'Select Bandwidth'}

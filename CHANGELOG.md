@@ -2,6 +2,99 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.5.5](https://github.com/lollinoo/grafana-network-weathermap/compare/v0.5.0...v0.5.5) (2026-02-22)
+
+### Features
+
+- **editor:** cascading query source filter for link side/bandwidth query selection
+- **editor:** auto-clear side query and bandwidth query when switching query source
+- **editor:** improve interaction reliability and selection behavior ([0ccae33](https://github.com/lollinoo/grafana-network-weathermap/commit/0ccae33))
+- **diagram:** implement interactive waypoints, draggable labels, and remove arrows ([5faf2c0](https://github.com/lollinoo/grafana-network-weathermap/commit/5faf2c0))
+- **editor:** implement link waypoints for advanced path control ([5b7b54c](https://github.com/lollinoo/grafana-network-weathermap/commit/5b7b54c))
+- **editor:** implement node templates for saving and reusing styles ([3249c99](https://github.com/lollinoo/grafana-network-weathermap/commit/3249c99))
+- **editor:** persist panel state and allow background deselection ([d2c3e39](https://github.com/lollinoo/grafana-network-weathermap/commit/d2c3e39))
+- **editor:** highlight selected items and persist collapse state ([b40be0f](https://github.com/lollinoo/grafana-network-weathermap/commit/b40be0f))
+- **editor:** enable click-to-edit selection for nodes and links ([2ec6700](https://github.com/lollinoo/grafana-network-weathermap/commit/2ec6700))
+- **security:** sanitize external urls and harden link opening ([b5d4e60](https://github.com/lollinoo/grafana-network-weathermap/commit/b5d4e60))
+- **runtime:** migrate to grafana 12 and node24 baseline ([3f3464e](https://github.com/lollinoo/grafana-network-weathermap/commit/3f3464e))
+- display link label and direction on hover ([6380406](https://github.com/lollinoo/grafana-network-weathermap/commit/6380406))
+
+### Bug Fixes
+
+- **editor:** clear form selection when background is clicked ([e4c858b](https://github.com/lollinoo/grafana-network-weathermap/commit/e4c858b))
+- **editor:** refactor drag state to use refs for reliable click handling ([20841dc](https://github.com/lollinoo/grafana-network-weathermap/commit/20841dc))
+- **editor:** ensure background click clears selection ([52e7247](https://github.com/lollinoo/grafana-network-weathermap/commit/52e7247))
+- **panel:** skip orphan links to avoid source/target undefined crash ([bd2bed2](https://github.com/lollinoo/grafana-network-weathermap/commit/bd2bed2))
+- **ci:** gate release signing via env-based secret check ([b09812c](https://github.com/lollinoo/grafana-network-weathermap/commit/b09812c))
+- **tsconfig:** resolve grafana base config via explicit local path ([78720bb](https://github.com/lollinoo/grafana-network-weathermap/commit/78720bb))
+
+### Performance
+
+- **panel:** memoize derived render data and tooltip frames ([d6a4e08](https://github.com/lollinoo/grafana-network-weathermap/commit/d6a4e08))
+- **panel:** memoize series values for link generation ([729e305](https://github.com/lollinoo/grafana-network-weathermap/commit/729e305))
+
+### Refactor
+
+- **panel:** extract node render layer and handlers ([a9e0cc5](https://github.com/lollinoo/grafana-network-weathermap/commit/a9e0cc5))
+- **panel:** extract link labels render layer ([d8bfce3](https://github.com/lollinoo/grafana-network-weathermap/commit/d8bfce3))
+- **panel:** extract link segments render layer ([7a5af26](https://github.com/lollinoo/grafana-network-weathermap/commit/7a5af26))
+- **panel:** extract link label layout helpers ([f9940ee](https://github.com/lollinoo/grafana-network-weathermap/commit/f9940ee))
+- **panel:** extract hovered link tooltip component ([938fb1d](https://github.com/lollinoo/grafana-network-weathermap/commit/938fb1d))
+- **panel:** extract canvas geometry helpers ([c322430](https://github.com/lollinoo/grafana-network-weathermap/commit/c322430))
+- **panel:** extract viewport zoom and pan interaction helpers ([d63d523](https://github.com/lollinoo/grafana-network-weathermap/commit/d63d523))
+- **panel:** remove temp node coupling from link rendering ([83ec31c](https://github.com/lollinoo/grafana-network-weathermap/commit/83ec31c))
+- **panel:** extract link metric calculation into pure helpers ([d8f62e7](https://github.com/lollinoo/grafana-network-weathermap/commit/d8f62e7))
+- **panel:** make node interaction state updates immutable ([f6179b7](https://github.com/lollinoo/grafana-network-weathermap/commit/f6179b7))
+- **panel:** extract tooltip frame mapping into pure helpers ([35134eb](https://github.com/lollinoo/grafana-network-weathermap/commit/35134eb))
+- **panel:** precompute immutable render link contexts ([ff25512](https://github.com/lollinoo/grafana-network-weathermap/commit/ff25512))
+- **panel:** make hover link enrichment immutable ([4dc02e7](https://github.com/lollinoo/grafana-network-weathermap/commit/4dc02e7))
+- **panel:** extract link math helpers from WeathermapPanel ([921bf28](https://github.com/lollinoo/grafana-network-weathermap/commit/921bf28))
+
+### Tests
+
+- **forms:** add builder and panel form coverage ([804b0ee](https://github.com/lollinoo/grafana-network-weathermap/commit/804b0ee))
+
+### Security
+
+- **utils:** harden external URL sanitization ([600f6e6](https://github.com/lollinoo/grafana-network-weathermap/commit/600f6e6))
+
+### Chores
+
+- **branding:** update project metadata and copyright, remove obsolete files ([68d3dfd](https://github.com/lollinoo/grafana-network-weathermap/commit/68d3dfd))
+- **branding:** rename project to weathermap-panel and bump version to 0.5.0 ([279d4da](https://github.com/lollinoo/grafana-network-weathermap/commit/279d4da))
+- **deps:** replace git-based react-data-grid transitive resolution ([624eb95](https://github.com/lollinoo/grafana-network-weathermap/commit/624eb95))
+- **deps:** trim deprecated install warnings ([4f46c98](https://github.com/lollinoo/grafana-network-weathermap/commit/4f46c98))
+- **deps:** reduce install warnings in lint and jest chains ([23b421e](https://github.com/lollinoo/grafana-network-weathermap/commit/23b421e))
+- **deps:** patch remaining transitive vulnerabilities ([9f371f1](https://github.com/lollinoo/grafana-network-weathermap/commit/9f371f1))
+- **deps:** reduce audit findings to single digits ([25c9e43](https://github.com/lollinoo/grafana-network-weathermap/commit/25c9e43))
+- **deps:** remove legacy e2e dependency tree ([b270c7c](https://github.com/lollinoo/grafana-network-weathermap/commit/b270c7c))
+- **deps:** reduce runtime dependency surface ([849aa56](https://github.com/lollinoo/grafana-network-weathermap/commit/849aa56))
+- **runtime:** set node 24.13 baseline ([6c2ac99](https://github.com/lollinoo/grafana-network-weathermap/commit/6c2ac99))
+- **runtime:** remove debug console output from panel code ([18558e3](https://github.com/lollinoo/grafana-network-weathermap/commit/18558e3))
+- **tsconfig:** make jsx and src project settings explicit ([c295bb3](https://github.com/lollinoo/grafana-network-weathermap/commit/c295bb3))
+- **git:** ignore eslint cache artifact ([088dca1](https://github.com/lollinoo/grafana-network-weathermap/commit/088dca1))
+- **git:** keep docs local-only and untracked ([ec8b396](https://github.com/lollinoo/grafana-network-weathermap/commit/ec8b396))
+- **dev:** default test stack to latest Grafana image ([a6ef48f](https://github.com/lollinoo/grafana-network-weathermap/commit/a6ef48f))
+- **build(deps):** alias stylistic TS plugin and suppress warning ([5ae5bd0](https://github.com/lollinoo/grafana-network-weathermap/commit/5ae5bd0))
+- **build(deps):** upgrade ESLint toolchain and refresh lockfile ([da86db4](https://github.com/lollinoo/grafana-network-weathermap/commit/da86db4))
+
+### CI
+
+- **smoke:** verify plugin loads on grafana latest ([649686c](https://github.com/lollinoo/grafana-network-weathermap/commit/649686c))
+- **security:** add scheduled audit workflow and install guide ([e776824](https://github.com/lollinoo/grafana-network-weathermap/commit/e776824))
+- **ci:** add unified verify pipeline and dependabot ([9e87ca2](https://github.com/lollinoo/grafana-network-weathermap/commit/9e87ca2))
+- **ci:** modernize workflows and node 18 baseline ([bd7d93d](https://github.com/lollinoo/grafana-network-weathermap/commit/bd7d93d))
+
+### Docs
+
+- update README ([d42b6a3](https://github.com/lollinoo/grafana-network-weathermap/commit/d42b6a3))
+- add release checklist and migration guide ([0e8ea67](https://github.com/lollinoo/grafana-network-weathermap/commit/0e8ea67))
+- normalize changelog commit references ([c912698](https://github.com/lollinoo/grafana-network-weathermap/commit/c912698))
+- record dependency update references ([e73820c](https://github.com/lollinoo/grafana-network-weathermap/commit/e73820c))
+- split reports and add detailed diff log ([b58f91c](https://github.com/lollinoo/grafana-network-weathermap/commit/b58f91c))
+
+---
+
 ### [0.4.3](https://github.com/knightss27/grafana-network-weathermap/compare/v0.4.2...v0.4.3) (2023-07-18)
 
 

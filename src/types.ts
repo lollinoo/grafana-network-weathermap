@@ -90,6 +90,7 @@ export interface LinkSide {
   bandwidth: number;
   bandwidthQuery: string | undefined;
   query: string | undefined;
+  queryFilter?: string;
   labelOffset: number;
   anchor: Anchor;
   dashboardLink: string;

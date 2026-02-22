@@ -12,16 +12,6 @@ You can also download the latest version from [Github](https://github.com/lollin
 
 **Original Repository**: [knightss27/grafana-network-weathermap](https://github.com/knightss27/grafana-network-weathermap)
 
-![Example Image 1](https://raw.githubusercontent.com/lollinoo/grafana-network-weathermap/main/src/img/general-example.svg)
-
-Other examples:
-
-![Example Image 2](https://raw.githubusercontent.com/lollinoo/grafana-network-weathermap/main/src/img/example_00.png)
-
-![Example Image 3](https://raw.githubusercontent.com/lollinoo/grafana-network-weathermap/main/src/img/example_01.png)
-
-![Example Image 4](https://raw.githubusercontent.com/lollinoo/grafana-network-weathermap/main/src/img/example_02.png)
-
 ## Recent Changes
 
 ### Features
